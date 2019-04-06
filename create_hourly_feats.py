@@ -20,7 +20,7 @@ import csv
 
 def translate(mapping):
     def translate_(col):
-        return mapping.get(col) + "." + col
+        return mapping.get(col)
     return udf(translate_, StringType())
 
 
@@ -63,6 +63,11 @@ def filter_chart_events(spark, orig_chrtevents_file_path, filtered_chrtevents_ou
     filtered_chartevents = df_chartevents.filter(col('ITEMID').isin(list(item_mappings.keys())))
     filtered_chartevents = filtered_chartevents.withColumn("ITEMNAME.ID", translate(item_mappings)("ITEMID"))
 
+
+    #TODO join filtered_chartevents with ADMISSIONS.csv on HADMID
+    #TODO filter out all events where CHARTTIME is greater than 48 hours after ADMITTIME from ADMISSIONS.csv
+
+
     with open(filtered_chrtevents_outfile_path, "w+") as f:
         w = csv.DictWriter(f, fieldnames=filtered_chartevents.schema.names)
         w.writeheader()
@@ -72,20 +77,25 @@ def filter_chart_events(spark, orig_chrtevents_file_path, filtered_chrtevents_ou
 
 
 
+def aggregate_features_hourly(filtered_chartevents_path):
+    df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="true")
+
+
 
 
 if __name__ == '__main__':
     conf = SparkConf().setMaster("local[4]").setAppName("My App")
     sc = SparkContext(conf=conf)
     spark = SQLContext(sc)
-    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')) # 'CHARTEVENTS.csv'
+    filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
+    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), filtered_chart_events_path) # 'CHARTEVENTS.csv'
 
     #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
 
     #filter out any events that are not within the 1st 48 hours of an admission
 
-
     #create hourly average for each feature, for each patient-admission
+    #TODO GROUP BY HADMID, FEATURE_NAME AVERAGE EACH FEATURE BY HOUR
     #fill foward data to hours that have missing data
 
     #standardize each feature as in the paper  -- in their preprocess.py this is what they did:  (values - min_feat_value) / (95thpercentile - min_value)   from their preprocessing.py:  dfs[idx][c] = (dfs[idx][c]-dfs[idx][c].min() )/ (dfs[idx][c].quantile(.95) - dfs[idx][c].min())
