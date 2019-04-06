@@ -11,6 +11,7 @@ from pyspark.sql.functions import udf, row_number, col, monotonically_increasing
 from local_configuration import *
 import csv
 import math
+import numpy as np
 
 #----------VITALS------------||-------------------LAB RESULT VALUES------------------------
 #HR, SBP, DBP, TEMP, RR, SP02,   Albumin, BUN, Ca, Cre, Na, K,HCO3, Glc, PH, PaC02, Platelets
@@ -105,6 +106,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
 
     #TODO: REMOVE columns that are not needed (keep CHARTEVENTS cols, ITEMNAME, HOUR_OF_OBS_AFTER_HADM
+
     with open(filtered_chrtevents_outfile_path, "w+") as f:
         w = csv.DictWriter(f, fieldnames=filtered_chartevents.schema.names)
         w.writeheader()
@@ -113,6 +115,19 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
             w.writerow(rdd_row.asDict())
 
 
+def consolidateColNumbers(row):
+    num_hours = 48
+    new_row_dict = {}
+    new_row_dict['HADM_ID'] = row.HADM_ID
+    new_row_dict['ITEMNAME'] = row.ITEMNAME
+    consolidated_arr = np.full(num_hours, np.nan)
+    row_dict = row.asDict()
+    for i in range(num_hours):
+        if i in row_dict:
+            consolidated_arr[i] = row_dict[i]
+    new_row_dict['hourly_averages'] = consolidated_arr
+    return Row(**new_row_dict)
+
 
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
@@ -120,6 +135,9 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     hourly_averages = df_filtered_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
 
     hourly_averages.show(n=15)
+
+    new_rdd = hourly_averages.rdd.map(consolidateColNumbers).take(15)
+    print(new_rdd)
 
 
 
@@ -138,13 +156,9 @@ if __name__ == '__main__':
 
     #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
 
-    #create hourly average for each feature, for each patient-admission
-    #TODO GROUP BY HADMID, FEATURE_NAME AVERAGE EACH FEATURE BY HOUR
-    #fill foward data to hours that have missing data
-
     #standardize each feature as in the paper  -- in their preprocess.py this is what they did:  (values - min_feat_value) / (95thpercentile - min_value)   from their preprocessing.py:  dfs[idx][c] = (dfs[idx][c]-dfs[idx][c].min() )/ (dfs[idx][c].quantile(.95) - dfs[idx][c].min())
 
     #for each admission, for each hourly bin, construct feature vector
 
-    #TODO: write feature file with list of tuple (patientid.hadmid, list patient-admission sequences 48 long each)
-    #TODO get mortality labels for admissions - if the patient died during the admission.   These are located int ADMISSIONS.csv table.  Must be in same ORDER (and length) as feature file.
+    #write feature file with list of tuple (patientid.hadmid, list patient-admission sequences 48 long each)
+    #get mortality labels for admissions - if the patient died during the admission.   These are located int ADMISSIONS.csv table.  Must be in same ORDER (and length) as feature file.
