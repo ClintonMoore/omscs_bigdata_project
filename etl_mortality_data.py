@@ -8,11 +8,9 @@ from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, Row, Window, functions as F
 from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import udf, row_number, monotonically_increasing_id
+from local_configuration import *
 
-PATH_TRAIN = "data/train/"
-PATH_VALIDATION = "data/validation/"
-PATH_TEST = "data/test/"
-PATH_OUTPUT = "data/processed/"
+
 
 
 def convert_icd9(icd9_object):
