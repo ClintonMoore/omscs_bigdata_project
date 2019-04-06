@@ -116,17 +116,11 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
-    #hourly_averages = df_filtered_chartevents.groupBy("HADM_ID", "ITEMNAME", "HOUR_OF_OBS_AFTER_HADM", ).agg(F.avg(df_filtered_chartevents.VALUENUM).alias('hourly_avg'))    #{"VALUENUM": "avg"})
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
-    hourly_averages = df_filtered_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM") #(F.avg(df_filtered_chartevents.VALUENUM).alias('hourly_avg'))    #{"VALUENUM": "avg"})
+    hourly_averages = df_filtered_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
 
     hourly_averages.show(n=15)
 
-    #>> > df4.groupBy("year").pivot("course", ["dotNET", "Java"]).sum("earnings").collect()
-    #$[Row(year=2012, dotNET=15000, Java=20000), Row(year=2013, dotNET=48000, Java=30000)]
-    #hourly_avgs_grouped = hourly_averages.groupby(["HADM_ID", "ITEMNAME"]).pivot('HOUR_OF_OBS_AFTER_HADM')#.agg(F.create_map([col('HOUR_OF_OBS_AFTER_HADM'), col('hourly_avg')]))
-
-    #hourly_avgs_grouped.show(n=15)
 
 
 if __name__ == '__main__':
