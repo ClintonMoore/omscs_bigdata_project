@@ -61,13 +61,17 @@ def filter_chart_events(spark, orig_chrtevents_file_path, filtered_chrtevents_ou
 
     df_chartevents = spark.read.csv(orig_chrtevents_file_path, header=True, inferSchema="false")
     filtered_chartevents = df_chartevents.filter(col('ITEMID').isin(list(item_mappings.keys())))
-    filtered_chartevents = filtered_chartevents.withColumn("ITEMNAME.ID", translate(item_mappings)("ITEMID"))
+    filtered_chartevents = filtered_chartevents.withColumn("ITEMNAME", translate(item_mappings)("ITEMID"))
 
 
-    #TODO join filtered_chartevents with ADMISSIONS.csv on HADMID
+    #TODO join filtered_chartevents with ADMISSIONS.csv on HADMID --- only keep HADMID AND ADMITTIME COLUMNS FROM ADMISSIONS
     #TODO filter out all events where CHARTTIME is greater than 48 hours after ADMITTIME from ADMISSIONS.csv
 
+    #TODO add column that contains the hour the observation occurred after admission  (0 - X)
 
+    #TODO filter out all observations where X > 48  (occurred after initial 48 hours of admission)
+
+    #TODO: REMOVE columns that are not needed (keep CHARTEVENTS cols, ITEMNAME, HOUR_OF_OBS
     with open(filtered_chrtevents_outfile_path, "w+") as f:
         w = csv.DictWriter(f, fieldnames=filtered_chartevents.schema.names)
         w.writeheader()
@@ -79,6 +83,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, filtered_chrtevents_ou
 
 def aggregate_features_hourly(filtered_chartevents_path):
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="true")
+
 
 
 
