@@ -10,6 +10,7 @@ from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import udf, row_number, col, monotonically_increasing_id
 from local_configuration import *
 import csv
+import math
 
 #----------VITALS------------||-------------------LAB RESULT VALUES------------------------
 #HR, SBP, DBP, TEMP, RR, SP02,   Albumin, BUN, Ca, Cre, Na, K,HCO3, Glc, PH, PaC02, Platelets
@@ -31,24 +32,24 @@ def get_event_key_ids():
     #TODO Finish this section.  There should be two item numbers that map to the same item as described in the link above.   Let's get it mostly right for the draft.
 
     item_mappings = {}
-    item_mappings[211] = 'HEART_RATE'   #HEART RATE
-    item_mappings[220045] = 'HEART_RATE'  # HEART RATE
-    item_mappings[3313] = 'SBP'  #BP Cuff [Systolic]
-    item_mappings[0] = 'DBP'  #
-    item_mappings[0] = 'TEMP'  #            TODO replace 0s with the correct values
-    item_mappings[0] = 'RR'  #
-    item_mappings[0] = 'SP02'  #
-    item_mappings[3066] = 'albumin'  #albumin
-    item_mappings[227000] = 'BUN_ApacheIV'  #BUN_ApacheIV
-    item_mappings[227001] = 'BunScore_ApacheIV'  #BunScore_ApacheIV
-    item_mappings[1162] = 'BUN'  # BUN
-    item_mappings[225624] = 'BUN'  #BUN
-    item_mappings[44441] = 'Calcium'  #
-    item_mappings[227005] = 'Creatinine_ApacheIV'
-    item_mappings[227006] = 'CreatScore_ApacheIV'
-    item_mappings[4231] = 'NaCl'
-    item_mappings[1535] = 'Potassium'
-    item_mappings[227006] = 'CreatScore_ApacheIV'
+    item_mappings['211'] = 'HEART_RATE'   #HEART RATE
+    item_mappings['220045'] = 'HEART_RATE'  # HEART RATE
+    item_mappings['3313'] = 'SBP'  #BP Cuff [Systolic]
+    item_mappings['0'] = 'DBP'  #
+    item_mappings['0'] = 'TEMP'  #            TODO replace 0s with the correct values
+    item_mappings['0'] = 'RR'  #
+    item_mappings['0'] = 'SP02'  #
+    item_mappings['3066'] = 'albumin'  #albumin
+    item_mappings['227000'] = 'BUN_ApacheIV'  #BUN_ApacheIV
+    item_mappings['227001'] = 'BunScore_ApacheIV'  #BunScore_ApacheIV
+    item_mappings['1162'] = 'BUN'  # BUN
+    item_mappings['225624'] = 'BUN'  #BUN
+    item_mappings['44441'] = 'Calcium'  #
+    item_mappings['227005'] = 'Creatinine_ApacheIV'
+    item_mappings['227006'] = 'CreatScore_ApacheIV'
+    item_mappings['4231'] = 'NaCl'
+    item_mappings['1535'] = 'Potassium'
+    item_mappings['227006'] = 'CreatScore_ApacheIV'
 
     return item_mappings
 
@@ -59,19 +60,19 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     #TAKES ONLY THE RELEVANT ITEM ROWS FROM THE CHARTEVENTS.CSV file
     item_mappings = get_event_key_ids()
 
-    df_chartevents = spark.read.csv(orig_chrtevents_file_path, header=True, inferSchema="true")
+    df_chartevents = spark.read.csv(orig_chrtevents_file_path, header=True, inferSchema="false")
     filtered_chartevents = df_chartevents.filter(col('ITEMID').isin(list(item_mappings.keys())))
     filtered_chartevents = filtered_chartevents.withColumn("ITEMNAME", translate(item_mappings)("ITEMID"))
 
 
     #join filtered_chartevents with ADMISSIONS.csv on HADMID --- only keep HADMID AND ADMITTIME COLUMNS FROM ADMISSIONS
-    df_admissions = spark.read.csv(admissions_csv_file_path, header=True, inferSchema="true")
+    df_admissions = spark.read.csv(admissions_csv_file_path, header=True, inferSchema="false")
 
     #add column that contains the hour the observation occurred after admission  (0 - X)
     filtered_chartevents = filtered_chartevents.join(df_admissions, filtered_chartevents.HADM_ID == df_admissions.HADM_ID)
-    timeFmt = "yyyy-MM-dd'T'HH:mm:ss.SSS"
-    timeDiff = (F.unix_timestamp('CHARTTIME', format=timeFmt)
-                - F.unix_timestamp('ADMITTIME', format=timeFmt))
+    timeFmt = "yyyy-MM-dd' 'HH:mm:ss"   #2153-09-03 07:15:00
+    timeDiff = math.floor((F.unix_timestamp('CHARTTIME', format=timeFmt)
+                - F.unix_timestamp('ADMITTIME', format=timeFmt)) / 60 / 60)  #calc diff, convert seconds to minutes, minutes to hours, then math.floor to remove decimal places (for hourly bin/aggregations)
     filtered_chartevents = filtered_chartevents.withColumn("HOUR_OF_OBS_AFTER_HADM", timeDiff)
 
     #filter out all observations where X > 48  (occurred after initial 48 hours of admission)
@@ -103,7 +104,7 @@ if __name__ == '__main__':
     sc = SparkContext(conf=conf)
     spark = SQLContext(sc)
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
-    admissions_csv_path = os.path.join(PATH_OUTPUT, 'ADMISSIONS.csv')
+    admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
     filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHRTEVSM.csv'), admissions_csv_path, filtered_chart_events_path) # 'CHARTEVENTS.csv'
 
 
