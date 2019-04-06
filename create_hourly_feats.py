@@ -12,12 +12,15 @@ from local_configuration import *
 import csv
 import math
 import numpy as np
+import pandas as pd
 
 #----------VITALS------------||-------------------LAB RESULT VALUES------------------------
 #HR, SBP, DBP, TEMP, RR, SP02,   Albumin, BUN, Ca, Cre, Na, K,HCO3, Glc, PH, PaC02, Platelets
 #    cols = [['heartrate', 'sysbp', 'diasbp', 'tempc', 'resprate', 'spo2', 'glucose'],
 #                   ['albumin', 'bun','creatinine', 'sodium', 'bicarbonate', 'platelet', 'inr'],
 #                   ['potassium', 'calcium', 'ph', 'pco2', 'lactate']]
+
+
 
 
 def translate(mapping):
@@ -120,12 +123,16 @@ def consolidateColNumbers(row):
     new_row_dict = {}
     new_row_dict['HADM_ID'] = row.HADM_ID
     new_row_dict['ITEMNAME'] = row.ITEMNAME
-    consolidated_arr = np.full(num_hours, np.nan)
     row_dict = row.asDict()
-    for i in range(num_hours):
-        if i in row_dict:
-            consolidated_arr[i] = row_dict[i]
-    new_row_dict['hourly_averages'] = consolidated_arr
+    del row_dict['HADM_ID']
+    del row_dict['ITEMNAME']
+
+    consolidated_series = pd.Series(list(row_dict.values()),index=row_dict.keys())
+    consolidated_series.reindex(range(num_hours))
+
+    consolidated_series = pd.Series.fillna( pd.Series.fillna(consolidated_series, method='ffill'), method='bfill')  #foward fill then backward fill
+
+    new_row_dict['hourly_averages'] = consolidated_series
     return Row(**new_row_dict)
 
 
