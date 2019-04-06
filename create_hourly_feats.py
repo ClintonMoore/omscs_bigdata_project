@@ -60,7 +60,30 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     #TAKES ONLY THE RELEVANT ITEM ROWS FROM THE CHARTEVENTS.CSV file
     item_mappings = get_event_key_ids()
 
-    df_chartevents = spark.read.csv(orig_chrtevents_file_path, header=True, inferSchema="false")
+
+
+    #use subset of large CHARTEVENTS.csv file for faster development
+    chrtevents_file_path_to_use = orig_chrtevents_file_path
+    use_sample_subset_lines = True
+    if use_sample_subset_lines:
+
+        chartevents_sample_temp_file = "CHARTEVENTS_SAMPLE.csv"
+        chrtevents_file_path_to_use = chartevents_sample_temp_file
+
+        temp_file = open(chartevents_sample_temp_file, "w+")
+        with open(orig_chrtevents_file_path) as orig_file:
+            i = 0
+            for line in orig_file:
+                temp_file.write(line)
+                i = i + 1
+                if i > 20000:
+                    break
+        temp_file.close()
+
+
+
+    df_chartevents = spark.read.csv(chrtevents_file_path_to_use, header=True, inferSchema="false")
+
     filtered_chartevents = df_chartevents.filter(col('ITEMID').isin(list(item_mappings.keys())))
     filtered_chartevents = filtered_chartevents.withColumn("ITEMNAME", translate(item_mappings)("ITEMID"))
 
@@ -68,15 +91,17 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     #join filtered_chartevents with ADMISSIONS.csv on HADMID --- only keep HADMID AND ADMITTIME COLUMNS FROM ADMISSIONS
     df_admissions = spark.read.csv(admissions_csv_file_path, header=True, inferSchema="false")
 
+
+
     #add column that contains the hour the observation occurred after admission  (0 - X)
     filtered_chartevents = filtered_chartevents.join(df_admissions, filtered_chartevents.HADM_ID == df_admissions.HADM_ID)
     timeFmt = "yyyy-MM-dd' 'HH:mm:ss"   #2153-09-03 07:15:00
-    timeDiff = math.floor((F.unix_timestamp('CHARTTIME', format=timeFmt)
-                - F.unix_timestamp('ADMITTIME', format=timeFmt)) / 60 / 60)  #calc diff, convert seconds to minutes, minutes to hours, then math.floor to remove decimal places (for hourly bin/aggregations)
-    filtered_chartevents = filtered_chartevents.withColumn("HOUR_OF_OBS_AFTER_HADM", timeDiff)
+    timeDiff = F.round((F.unix_timestamp('CHARTTIME', format=timeFmt)
+                - F.unix_timestamp('ADMITTIME', format=timeFmt)) / 60 / 60).cast('integer')  #calc diff, convert seconds to minutes, minutes to hours, then math.floor to remove decimal places (for hourly bin/aggregations)
+    filtered_chartevents = filtered_chartevents.withColumn("HOUR_OF_OBS_AFTER_HADM", timeDiff)  #  F.round(   ).cast('integer')
 
     #filter out all observations where X > 48  (occurred after initial 48 hours of admission)
-    filtered_chartevents = filtered_chartevents.filter(col('HOUR_OF_OBS_AFTER_HADM') > 48)
+    filtered_chartevents = filtered_chartevents.filter(col('HOUR_OF_OBS_AFTER_HADM') <= 48)
 
 
     #TODO: REMOVE columns that are not needed (keep CHARTEVENTS cols, ITEMNAME, HOUR_OF_OBS_AFTER_HADM
@@ -105,7 +130,8 @@ if __name__ == '__main__':
     spark = SQLContext(sc)
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
-    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHRTEVSM.csv'), admissions_csv_path, filtered_chart_events_path) # 'CHARTEVENTS.csv'
+    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path) # 'CHARTEVENTS.csv'
+
 
 
     #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
