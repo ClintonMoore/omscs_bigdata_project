@@ -94,7 +94,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
 
     #add column that contains the hour the observation occurred after admission  (0 - X)
-    filtered_chartevents = filtered_chartevents.join(df_admissions, filtered_chartevents.HADM_ID == df_admissions.HADM_ID)
+    filtered_chartevents = filtered_chartevents.join(df_admissions, ['HADM_ID'])
     timeFmt = "yyyy-MM-dd' 'HH:mm:ss"   #2153-09-03 07:15:00
     timeDiff = F.round((F.unix_timestamp('CHARTTIME', format=timeFmt)
                 - F.unix_timestamp('ADMITTIME', format=timeFmt)) / 60 / 60).cast('integer')  #calc diff, convert seconds to minutes, minutes to hours, then math.floor to remove decimal places (for hourly bin/aggregations)
@@ -115,13 +115,18 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
 
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
-    df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="true")
-    hourly_averages = df_filtered_chartevents.groupBy("HADM_ID", "HOUR_OF_OBS_AFTER_HADM").agg({"VALUENUM": "avg"})
+    df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
+    #hourly_averages = df_filtered_chartevents.groupBy("HADM_ID", "ITEMNAME", "HOUR_OF_OBS_AFTER_HADM", ).agg(F.avg(df_filtered_chartevents.VALUENUM).alias('hourly_avg'))    #{"VALUENUM": "avg"})
+    df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
+    hourly_averages = df_filtered_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM") #(F.avg(df_filtered_chartevents.VALUENUM).alias('hourly_avg'))    #{"VALUENUM": "avg"})
 
+    hourly_averages.show(n=15)
 
+    #>> > df4.groupBy("year").pivot("course", ["dotNET", "Java"]).sum("earnings").collect()
+    #$[Row(year=2012, dotNET=15000, Java=20000), Row(year=2013, dotNET=48000, Java=30000)]
+    #hourly_avgs_grouped = hourly_averages.groupby(["HADM_ID", "ITEMNAME"]).pivot('HOUR_OF_OBS_AFTER_HADM')#.agg(F.create_map([col('HOUR_OF_OBS_AFTER_HADM'), col('hourly_avg')]))
 
-
-
+    #hourly_avgs_grouped.show(n=15)
 
 
 if __name__ == '__main__':
@@ -129,9 +134,12 @@ if __name__ == '__main__':
     sc = SparkContext(conf=conf)
     spark = SQLContext(sc)
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
-    admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
-    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path) # 'CHARTEVENTS.csv'
 
+    admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
+    #filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
+
+
+    aggregate_temporal_features_hourly(filtered_chart_events_path)
 
 
     #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
