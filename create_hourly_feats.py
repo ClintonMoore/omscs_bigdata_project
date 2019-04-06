@@ -6,8 +6,8 @@ import pandas as pd
 
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, Row, Window, functions as F
-from pyspark.sql.types import IntegerType, StringType
-from pyspark.sql.functions import udf, row_number, col, monotonically_increasing_id
+from pyspark.sql.types import IntegerType, StringType, DoubleType
+from pyspark.sql.functions import udf, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType
 from local_configuration import *
 import csv
 import math
@@ -118,22 +118,8 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
             w.writerow(rdd_row.asDict())
 
 
-def consolidateColNumbers(row):
-    num_hours = 48
-    new_row_dict = {}
-    new_row_dict['HADM_ID'] = row.HADM_ID
-    new_row_dict['ITEMNAME'] = row.ITEMNAME
-    row_dict = row.asDict()
-    del row_dict['HADM_ID']
-    del row_dict['ITEMNAME']
 
-    consolidated_series = pd.Series(list(row_dict.values()),index=row_dict.keys())
-    consolidated_series.reindex(range(num_hours))
 
-    consolidated_series = pd.Series.fillna( pd.Series.fillna(consolidated_series, method='ffill'), method='bfill')  #foward fill then backward fill
-
-    new_row_dict['hourly_averages'] = consolidated_series
-    return Row(**new_row_dict)
 
 
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
@@ -143,8 +129,31 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
 
     hourly_averages.show(n=15)
 
-    new_rdd = hourly_averages.rdd.map(consolidateColNumbers).take(15)
-    print(new_rdd)
+    def consolidateColNumbers(row):
+        num_hours = 48
+        new_row_dict = {}
+        new_row_dict['HADM_ID'] = row.HADM_ID
+        row_dict = row.asDict()
+        del row_dict['HADM_ID']
+        del row_dict['ITEMNAME']
+        consolidated_series = pd.Series(list(row_dict.values()), index=row_dict.keys()).rename(row.ITEMNAME)
+        consolidated_series.reindex(range(num_hours))
+        consolidated_series = pd.Series.fillna(pd.Series.fillna(consolidated_series, method='ffill'),  method='bfill')  # foward fill then backward fill
+        new_row_dict['hourly_averages'] = consolidated_series
+        return Row(**new_row_dict)
+
+    rdd_hadm_individual_metrics = hourly_averages.rdd.map(consolidateColNumbers)
+    print(rdd_hadm_individual_metrics.take(15))
+
+    @pandas_udf(DoubleType(), functionType=PandasUDFType.GROUPED_AGG)
+    def f(x, y):
+        return np.minimum(x, y).mean()
+
+    #rdd_hadm_individual_metrics = rdd_hadm_individual_metrics.map(lambda x: (x.HADM_ID, hourly_averages))
+
+
+    hadm_all_metrics = rdd_hadm_individual_metrics.groubBy('HADM_ID').agg()   #(lambda pddf1, pddf2: pddf1.join(pddf2))
+    print(hadm_all_metrics.take(15))
 
 
 
