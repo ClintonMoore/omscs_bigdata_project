@@ -49,7 +49,10 @@ def get_event_key_ids():
     item_mappings['227001'] = 'BunScore_ApacheIV'  #BunScore_ApacheIV
     item_mappings['1162'] = 'BUN'  # BUN
     item_mappings['225624'] = 'BUN'  #BUN
+    item_mappings['1530'] = 'INR'
     item_mappings['44441'] = 'Calcium'  #
+    item_mappings['3784'] = 'PCO2'
+    item_mappings['812'] = 'HCO3'
     item_mappings['227005'] = 'Creatinine_ApacheIV'
     item_mappings['227006'] = 'CreatScore_ApacheIV'
     item_mappings['4231'] = 'NaCl'
