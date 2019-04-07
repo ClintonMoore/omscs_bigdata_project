@@ -58,7 +58,8 @@ def get_event_key_ids():
     item_mappings['3312'] = 'MBP'  #BP Cuff [Mean]
     item_mappings['0'] = 'TEMP'  #            TODO replace 0s with the correct values
     item_mappings['7884'] = 'RR'  #
-    item_mappings['0'] = 'SP02'  #
+    item_mappings['646'] = 'SP02'  #	SpO2
+    item_mappings['220277'] = 'SP02'  # saturation pulseoxymetry SpO2
     item_mappings['3066'] = 'albumin'  #albumin
     item_mappings['227000'] = 'BUN_ApacheIV'  #BUN_ApacheIV
     item_mappings['227001'] = 'BunScore_ApacheIV'  #BunScore_ApacheIV
