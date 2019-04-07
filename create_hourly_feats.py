@@ -7,7 +7,7 @@ import pandas as pd
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, Row, Window, functions as F
 from pyspark.sql.types import IntegerType, StringType, DoubleType
-from pyspark.sql.functions import udf, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType
+from pyspark.sql.functions import udf, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType, explode
 from local_configuration import *
 import csv
 import math
@@ -123,6 +123,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
 
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
+    num_hours = 48
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
     hourly_averages = df_filtered_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
@@ -130,7 +131,6 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     hourly_averages.show(n=15)
 
     def consolidateColNumbers(row):
-        num_hours = 48
         new_row_dict = {}
         new_row_dict['HADM_ID'] = row.HADM_ID
         new_row_dict['ITEMNAME'] = row.ITEMNAME
@@ -146,8 +146,24 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     rdd_hadm_individual_metrics = hourly_averages.rdd.map(consolidateColNumbers)
     print(rdd_hadm_individual_metrics.take(15))
 
-    rdd_hadm_hourly_averages_filled  = rdd_hadm_individual_metrics.flatMap(lambda x: [(x.HADM_ID, x.ITEMNAME, y, x.hourly_averages[y]) for y in range(len(x.hourly_averages))])
-    print(rdd_hadm_hourly_averages_filled.take(100))
+    df_hadm_hourly_averages_filled  = rdd_hadm_individual_metrics.flatMap(lambda x: [Row(**{'HADM_ID': x.HADM_ID, 'ITEMNAME': x.ITEMNAME, 'HOUR':y, 'VALUE':x.hourly_averages[y]}) for y in range(len(x.hourly_averages))]).toDF()
+    df_hadm_hourly_averages_filled.show(100)
+
+    #for each itemname (temporal feature), get filtered dataframe with only that feature.   Outer join their values under a new column with that ITEMNAME onto a new aggregate dataframe
+    df_distinct_hadmids = df_hadm_hourly_averages_filled.select('HADM_ID').distinct()
+    hours_df = spark.createDataFrame(range(num_hours), IntegerType()).withColumnRenamed('value', 'HOUR')
+    cartesian_hadm_hours = df_distinct_hadmids.crossJoin(hours_df)
+    cartesian_hadm_hours.show(150)
+
+    #NOTE THIS IS VERY EXPENSIVE.  MAY WANT TO THINK ABOUT OPTIMIZING / REFACTORING FOR FINAL (NOT DRAFT)
+    itemnames = set(get_event_key_ids().values())
+    for itemname in itemnames:
+        df_single_feature = df_hadm_hourly_averages_filled.filter(col('ITEMNAME') == itemname)
+        df_single_feature = df_single_feature.drop(df_single_feature.ITEMNAME).withColumnRenamed('VALUE', itemname)
+        cartesian_hadm_hours = cartesian_hadm_hours.join(df_single_feature, ['HADM_ID', 'HOUR'], how='full')
+
+    cartesian_hadm_hours.show(150)
+
 
     #TODO create admission sequences - a sequence is a matrix, rows represent each hour and columns represent each feature
 
@@ -160,7 +176,7 @@ if __name__ == '__main__':
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
 
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
-    #filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
+    #filter_chart_events(sc, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
 
 
     aggregate_temporal_features_hourly(filtered_chart_events_path)
