@@ -133,27 +133,23 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
         num_hours = 48
         new_row_dict = {}
         new_row_dict['HADM_ID'] = row.HADM_ID
+        new_row_dict['ITEMNAME'] = row.ITEMNAME
         row_dict = row.asDict()
         del row_dict['HADM_ID']
         del row_dict['ITEMNAME']
-        consolidated_series = pd.Series(list(row_dict.values()), index=row_dict.keys()).rename(row.ITEMNAME)
+        consolidated_series = pd.Series(list(row_dict.values()), index=row_dict.keys())
         consolidated_series.reindex(range(num_hours))
         consolidated_series = pd.Series.fillna(pd.Series.fillna(consolidated_series, method='ffill'),  method='bfill')  # foward fill then backward fill
-        new_row_dict['hourly_averages'] = consolidated_series
+        new_row_dict['hourly_averages'] = consolidated_series.tolist()
         return Row(**new_row_dict)
 
     rdd_hadm_individual_metrics = hourly_averages.rdd.map(consolidateColNumbers)
     print(rdd_hadm_individual_metrics.take(15))
 
-    @pandas_udf(DoubleType(), functionType=PandasUDFType.GROUPED_AGG)
-    def f(x, y):
-        return np.minimum(x, y).mean()
+    rdd_hadm_hourly_averages_filled  = rdd_hadm_individual_metrics.flatMap(lambda x: [(x.HADM_ID, x.ITEMNAME, y, x.hourly_averages[y]) for y in range(len(x.hourly_averages))])
+    print(rdd_hadm_hourly_averages_filled.take(100))
 
-    #rdd_hadm_individual_metrics = rdd_hadm_individual_metrics.map(lambda x: (x.HADM_ID, hourly_averages))
-
-
-    hadm_all_metrics = rdd_hadm_individual_metrics.groubBy('HADM_ID').agg()   #(lambda pddf1, pddf2: pddf1.join(pddf2))
-    print(hadm_all_metrics.take(15))
+    #TODO create admission sequences - a sequence is a matrix, rows represent each hour and columns represent each feature
 
 
 
