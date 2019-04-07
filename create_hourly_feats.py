@@ -7,7 +7,7 @@ import pandas as pd
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, Row, Window, functions as F
 from pyspark.sql.types import IntegerType, StringType, DoubleType
-from pyspark.sql.functions import udf, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType, explode
+from pyspark.sql.functions import udf, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType, explode, collect_list, create_map
 from local_configuration import *
 import csv
 import math
@@ -20,6 +20,21 @@ import pandas as pd
 #                   ['albumin', 'bun','creatinine', 'sodium', 'bicarbonate', 'platelet', 'inr'],
 #                   ['potassium', 'calcium', 'ph', 'pco2', 'lactate']]
 
+
+def flatten(l, ltypes=(list, tuple)):  #from http://rightfootin.blogspot.com/2006/09/more-on-python-flatten.html
+    ltype = type(l)
+    l = list(l)
+    i = 0
+    while i < len(l):
+        while isinstance(l[i], ltypes):
+            if not l[i]:
+                l.pop(i)
+                i -= 1
+                break
+            else:
+                l[i:i + 1] = l[i]
+        i += 1
+    return ltype(l)
 
 
 
@@ -128,7 +143,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
     hourly_averages = df_filtered_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
 
-    hourly_averages.show(n=15)
+    #hourly_averages.show(n=15)
 
     def consolidateColNumbers(row):
         new_row_dict = {}
@@ -144,32 +159,55 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
         return Row(**new_row_dict)
 
     rdd_hadm_individual_metrics = hourly_averages.rdd.map(consolidateColNumbers)
-    print(rdd_hadm_individual_metrics.take(15))
+    #print(rdd_hadm_individual_metrics.take(15))
 
     df_hadm_hourly_averages_filled  = rdd_hadm_individual_metrics.flatMap(lambda x: [Row(**{'HADM_ID': x.HADM_ID, 'ITEMNAME': x.ITEMNAME, 'HOUR':y, 'VALUE':x.hourly_averages[y]}) for y in range(len(x.hourly_averages))]).toDF()
-    df_hadm_hourly_averages_filled.show(100)
+    #df_hadm_hourly_averages_filled.show(100)
 
     #for each itemname (temporal feature), get filtered dataframe with only that feature.   Outer join their values under a new column with that ITEMNAME onto a new aggregate dataframe
     df_distinct_hadmids = df_hadm_hourly_averages_filled.select('HADM_ID').distinct()
     hours_df = spark.createDataFrame(range(num_hours), IntegerType()).withColumnRenamed('value', 'HOUR')
     cartesian_hadm_hours = df_distinct_hadmids.crossJoin(hours_df)
-    cartesian_hadm_hours.show(150)
+    #cartesian_hadm_hours.show(150)
 
-    #NOTE THIS IS VERY EXPENSIVE.  MAY WANT TO THINK ABOUT OPTIMIZING / REFACTORING FOR FINAL (NOT DRAFT)
-    itemnames = set(get_event_key_ids().values())
+    itemnames = list(set(get_event_key_ids().values()))
+
     for itemname in itemnames:
         df_single_feature = df_hadm_hourly_averages_filled.filter(col('ITEMNAME') == itemname)
         df_single_feature = df_single_feature.drop(df_single_feature.ITEMNAME).withColumnRenamed('VALUE', itemname)
-        cartesian_hadm_hours = cartesian_hadm_hours.join(df_single_feature, ['HADM_ID', 'HOUR'], how='full')
+        cartesian_hadm_hours = cartesian_hadm_hours.join(df_single_feature, ['HADM_ID', 'HOUR'], how='left')
 
     cartesian_hadm_hours.show(150)
+    df_hadm_hourly_feature_arrays = cartesian_hadm_hours.select('HADM_ID', 'HOUR', F.struct(itemnames).alias('all_temporal_feats'))
+    df_hadm_hourly_feature_arrays.show(150)
 
 
-    #TODO create admission sequences - a sequence is a matrix, rows represent each hour and columns represent each feature
+    df_hadm_all_hour_feats = df_hadm_hourly_feature_arrays.groupBy("HADM_ID").agg(collect_list(create_map(col("HOUR"),col('all_temporal_feats'))).alias('all_hours_all_temporal_feats'))
+    df_hadm_all_hour_feats.show(150)
+
+    def transformMapToArrayFn(row):
+        new_row_dict = {}
+        new_row_dict['HADM_ID'] = row.HADM_ID
+        list_of_single_entry_dicts_for_each_hr = flatten(row.all_hours_all_temporal_feats)
+        dict_hour_to_feature_row = {k: v for d in list_of_single_entry_dicts_for_each_hr for k, v in d.items()}
+        sequences = [None] * num_hours
+        for h in range(num_hours):
+            if h in dict_hour_to_feature_row:
+                features_array_order_of_itemnames = []
+                features_dict_for_hour = dict_hour_to_feature_row[h]
+                for itemname in itemnames:
+                    features_array_order_of_itemnames.append(features_dict_for_hour[itemname])
+                    sequences[h] = features_array_order_of_itemnames
+        return Row(**{'HADM_ID':row.HADM_ID, 'all_hours_all_temporal_feats' : sequences})
+
+    rdd_hadm_individual_metrics_hadm_to_sequences = df_hadm_all_hour_feats.rdd.map(transformMapToArrayFn)
+    print(rdd_hadm_individual_metrics_hadm_to_sequences.take(10))
+
 
 
 
 if __name__ == '__main__':
+
     conf = SparkConf().setMaster("local[4]").setAppName("My App")
     sc = SparkContext(conf=conf)
     spark = SQLContext(sc)
