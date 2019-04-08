@@ -50,34 +50,82 @@ def get_event_key_ids():
 
     #TODO Finish this section.  There should be two item numbers that map to the same item as described in the link above.   Let's get it mostly right for the draft.
 
-    item_mappings = {}
+    #Heart Rate
     item_mappings['211'] = 'HEART_RATE'   #HEART RATE
     item_mappings['220045'] = 'HEART_RATE'  # HEART RATE
+    #Blood Pressure [Systolic]
     item_mappings['3313'] = 'SBP'  #BP Cuff [Systolic]
+    item_mappings['3315'] = 'SBP'  #BP Left Arm [Systolic]
+    item_mappings['3317'] = 'SBP'  #BP Left Leg [Systolic]
+    item_mappings['3319'] = 'SBP'  #BP PAL [Systolic] 
+    item_mappings['3321'] = 'SBP'  #BP Right Arm [Systolic] 
+    item_mappings['3323'] = 'SBP'  #BP Right Leg [Systolic]
+    item_mappings['3325'] = 'SBP'  #BP UAC [Systolic]
+    item_mappings['6'] = 'SBP'  #ABP [Systolic]
+    item_mappings['51'] = 'SBP'  #Arterial BP [Systolic]    
+    item_mappings['6701'] = 'SBP'  #Arterial BP #2 [Systolic]
+    item_mappings['442'] = 'SBP'  #Manual BP [Systolic]
+    item_mappings['455'] = 'SBP'  #NBP [Systolic]
+    item_mappings['480'] = 'SBP'  #Orthostat BP sitting [Systolic] 
+    item_mappings['482'] = 'SBP'  #OrthostatBP standing [Systolic]
+    item_mappings['484'] = 'SBP'  #Orthostatic BP lying [Systolic] 
+    item_mappings['492'] = 'SBP'  #PAP [Systolic]
+    #Blood Pressure [Diastolic]
     item_mappings['8502'] = 'DBP'  #BP Cuff [Diastolic]
-    item_mappings['3312'] = 'MBP'  #BP Cuff [Mean]
-    item_mappings['676'] = 'TEMP' #Temperature C
-    item_mappings['223762'] = 'TEMP'  #Temperature Celsius            
-    item_mappings['7884'] = 'RR'  #
-    item_mappings['646'] = 'SP02'  #	SpO2
+    
+    #Blood Pressure [Mean]  
+    item_mappings['3312'] = 'MBP'  #BP Cuff [Mean] 
+    
+    item_mappings['676'] = 'TEMPC' #Temperature C
+    item_mappings['677'] = 'TEMPC'  #Temperature C (calc)
+    item_mappings['223762'] = 'TEMPC'  #Temperature Celsius   
+    item_mappings['678'] = 'TEMPF' #Temperature F
+    item_mappings['679'] = 'TEMPF'  #Temperature F (calc)
+    item_mappings['223761'] = 'TEMPF'  #Temperature Fahrenheit   
+    #Respiratory Rate
+    item_mappings['7884'] = 'RR' #RR
+    item_mappings['618'] = 'RR' #Respiratory Rate
+    item_mappings['220210'] = 'RR' #Respiratory Rate
+    item_mappings['619'] = 'RR' #Respiratory Rate Set
+    item_mappings['224688'] = 'RR' #Respiratory Rate (Set)
+    item_mappings['614'] = 'RR' #Resp Rate (Spont)
+    item_mappings['224689'] = 'RR' #Respiratory Rate (spontaneous)
+    item_mappings['615'] = 'RR' #Resp Rate (Total) 
+    item_mappings['224690'] = 'RR' #Respiratory Rate (Total)  
+    #Saturation Pulseoxymetry
+    item_mappings['646'] = 'SP02'  #SpO2
     item_mappings['220277'] = 'SP02'  # saturation pulseoxymetry SpO2
+    #Albumin
     item_mappings['3066'] = 'albumin'  #albumin
+    #Bun
     item_mappings['227000'] = 'BUN_ApacheIV'  #BUN_ApacheIV
     item_mappings['227001'] = 'BunScore_ApacheIV'  #BunScore_ApacheIV
     item_mappings['1162'] = 'BUN'  # BUN
     item_mappings['225624'] = 'BUN'  #BUN
+    #International Normalized Ratio (INR)
     item_mappings['1530'] = 'INR'
+    #Platelets
+    item_mappings['828'] = 'Platelets' #platelets
+    item_mappings['225170'] = 'Platelets' 
+    #Calcium
     item_mappings['44441'] = 'Calcium'  #
+    #ABG (Arterial Blood Gas) 
     item_mappings['3784'] = 'PCO2'
+    #Bicarbonate
     item_mappings['812'] = 'HCO3'
+    #Glucose
     item_mappings['1529'] = 'Glucose' #Glc
+    #Creatinine
     item_mappings['1525'] = 'Creatinine' #Cre
     item_mappings['220615'] = 'Creatinine' #Cre
     item_mappings['227005'] = 'Creatinine_ApacheIV'
     item_mappings['227006'] = 'CreatScore_ApacheIV'
+    #Sodium
+    item_mappings['1536'] = 'Sodium'
     item_mappings['4231'] = 'NaCl'
-    item_mappings['1535'] = 'Potassium'
-    item_mappings['227006'] = 'CreatScore_ApacheIV'
+    #Postassium
+    item_mappings['1535'] = 'Potassium' 
+
 
     return item_mappings
 
