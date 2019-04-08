@@ -56,7 +56,8 @@ def get_event_key_ids():
     item_mappings['3313'] = 'SBP'  #BP Cuff [Systolic]
     item_mappings['8502'] = 'DBP'  #BP Cuff [Diastolic]
     item_mappings['3312'] = 'MBP'  #BP Cuff [Mean]
-    item_mappings['0'] = 'TEMP'  #            TODO replace 0s with the correct values
+    item_mappings['676'] = 'TEMP' #Temperature C
+    item_mappings['223762'] = 'TEMP'  #Temperature Celsius            
     item_mappings['7884'] = 'RR'  #
     item_mappings['646'] = 'SP02'  #	SpO2
     item_mappings['220277'] = 'SP02'  # saturation pulseoxymetry SpO2
@@ -69,6 +70,9 @@ def get_event_key_ids():
     item_mappings['44441'] = 'Calcium'  #
     item_mappings['3784'] = 'PCO2'
     item_mappings['812'] = 'HCO3'
+    item_mappings['1529'] = 'Glucose' #Glc
+    item_mappings['1525'] = 'Creatinine' #Cre
+    item_mappings['220615'] = 'Creatinine' #Cre
     item_mappings['227005'] = 'Creatinine_ApacheIV'
     item_mappings['227006'] = 'CreatScore_ApacheIV'
     item_mappings['4231'] = 'NaCl'
