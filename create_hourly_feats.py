@@ -49,7 +49,7 @@ def get_event_key_ids():
     #TODO (for final) aggregate all synonomous variations of each measurement --- SEE INPORTANT CONSIDERATIONS: https://mimic.physionet.org/mimictables/d_items/
 
     #TODO Finish this section.  There should be two item numbers that map to the same item as described in the link above.   Let's get it mostly right for the draft.
-
+    item_mappings = {}
     #Heart Rate
     item_mappings['211'] = 'HEART_RATE'   #HEART RATE
     item_mappings['220045'] = 'HEART_RATE'  # HEART RATE
