@@ -19,8 +19,8 @@ def convert_icd9(icd9_object):
 	:return: extracted main digits of ICD-9 code
 	"""
 	icd9_str = str(icd9_object)
-	# TODO: Extract the the first 3 or 4 alphanumeric digits prior to the decimal point from a given ICD-9 code.
-	# TODO: Read the homework description carefully.
+	#  Extract the the first 3 or 4 alphanumeric digits prior to the decimal point from a given ICD-9 code.
+	 
 	icd9_str = str(icd9_object)
 	if icd9_str[0] == 'E' :
 		converted = icd9_str[:4]
@@ -61,8 +61,7 @@ def create_dataset(path, codemap_icd, codemap_drg, codemap_itm, transform, spark
 	:param transform: e.g. convert_icd9
 	:return: List(patient IDs), List(labels), Visit sequence data as a List of List of List.
 	"""
-	# TODO: 1. Load data from the three csv files
-	# TODO: Loading the mortality file is shown as an example below. Load two other files also.
+	#   Load data from the csv files 
 
 	df_mortality = spark.read.csv(path+"MORTALITY.csv",header=True, inferSchema="true")
 	df_admissions = spark.read.csv(path+"ADMISSIONS.csv",header=True, inferSchema="true")
@@ -103,19 +102,19 @@ def create_dataset(path, codemap_icd, codemap_drg, codemap_itm, transform, spark
 	df_union = df_merge_diag.union(df_merge_med)
 	df_union = df_union.union (df_merge_lab)
 
-	# TODO: 3. Group the diagnosis codes for the same visit.
+	# Group the diagnosis codes for the same visit.
 	groupby_visits  = df_union.groupby (['SUBJECT_ID','ADMITTIME']).agg(F.collect_set("CODE").alias("FEATURES"))
 
-	# TODO: 4. Group the visits for the same patient.
+	# Group the visits for the same patient.
 	df_sort = groupby_visits.orderBy("SUBJECT_ID", "ADMITTIME")
 	groupby_patients= df_sort.groupby ('SUBJECT_ID').agg(F.collect_set("FEATURES").alias("FEATURES")).orderBy("SUBJECT_ID")
 
-	# TODO: 5. Make a visit sequence dataset as a List of patient Lists of visit Lists
-	# TODO: Visits for each patient must be sorted in chronological order.
+	# Make a visit sequence dataset as a List of patient Lists of visit Lists
+	# Visits for each patient must be sorted in chronological order.
 	seq_data = list(groupby_patients.rdd.map(lambda x : x[1]).collect())
 
-	# TODO: 6. Make patient-id List and label List also.
-	# TODO: The order of patients in the three List output must be consistent.
+	# Make patient-id List and label List also.
+	# The order of patients in the three List output must be consistent.
 	df_sort = df_mortality.orderBy('SUBJECT_ID')
 	df = groupby_patients.join(df_sort, how ='left_outer', on='SUBJECT_ID').select('SUBJECT_ID', 'MORTALITY')
 	patient_ids = list(df.rdd.map(lambda x : x[0]).collect())

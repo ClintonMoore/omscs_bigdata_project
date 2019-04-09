@@ -50,30 +50,190 @@ def get_event_key_ids():
 
     #TODO Finish this section.  There should be two item numbers that map to the same item as described in the link above.   Let's get it mostly right for the draft.
 
-    item_mappings = {}
+    #Heart Rate
     item_mappings['211'] = 'HEART_RATE'   #HEART RATE
     item_mappings['220045'] = 'HEART_RATE'  # HEART RATE
+    
+    #Blood Pressure [Systolic]
     item_mappings['3313'] = 'SBP'  #BP Cuff [Systolic]
+    item_mappings['3315'] = 'SBP'  #BP Left Arm [Systolic]
+    item_mappings['3317'] = 'SBP'  #BP Left Leg [Systolic]
+    item_mappings['3319'] = 'SBP'  #BP PAL [Systolic]  
+    item_mappings['3321'] = 'SBP'  #BP Right Arm [Systolic] 
+    item_mappings['3323'] = 'SBP'  #BP Right Leg [Systolic]
+    item_mappings['3325'] = 'SBP'  #BP UAC [Systolic]
+    item_mappings['6'] = 'SBP'  #ABP [Systolic]
+    item_mappings['51'] = 'SBP'  #Arterial BP [Systolic]    
+    item_mappings['6701'] = 'SBP'  #Arterial BP #2 [Systolic]
+    item_mappings['225309'] = 'SBP'  #ART BP Systolic
+    item_mappings['220050'] = 'SBP'  #Arterial Blood Pressure systolic
+    item_mappings['442'] = 'SBP'  #Manual BP [Systolic]
+    item_mappings['224167'] = 'SBP'  #Manual Blood Pressure Systolic Left
+    item_mappings['227243'] = 'SBP'  #Manual Blood Pressure Systolic Right
+    item_mappings['442'] = 'SBP'  #Manual BP [Systolic]
+    item_mappings['455'] = 'SBP'  #NBP [Systolic]
+    item_mappings['480'] = 'SBP'  #Orthostat BP sitting [Systolic] 
+    item_mappings['482'] = 'SBP'  #OrthostatBP standing [Systolic]
+    item_mappings['484'] = 'SBP'  #Orthostatic BP lying [Systolic]  
+    item_mappings['220179'] = 'SBP'  #Non Invasive Blood Pressure systolic 
+        
+    #Blood Pressure [Diastolic]
     item_mappings['8502'] = 'DBP'  #BP Cuff [Diastolic]
-    item_mappings['3312'] = 'MBP'  #BP Cuff [Mean]
-    item_mappings['0'] = 'TEMP'  #            TODO replace 0s with the correct values
-    item_mappings['7884'] = 'RR'  #
-    item_mappings['0'] = 'SP02'  #
-    item_mappings['3066'] = 'albumin'  #albumin
+    item_mappings['8503'] = 'DBP'  #BP Left Arm [Diastolic]
+    item_mappings['8504'] = 'DBP'  #BP Left Leg [Diastolic]
+    item_mappings['8505'] = 'DBP'  #BP PAL [Diastolic]
+    item_mappings['8506'] = 'DBP'  #BP Right Arm [Diastolic]
+    item_mappings['8507'] = 'DBP'  #BP Right Leg [Diastolic]
+    item_mappings['8508'] = 'DBP'  #BP UAC [Diastolic]
+    item_mappings['8440'] = 'DBP'  #Manual BP [Diastolic]
+    item_mappings['227242'] = 'DBP'  #Manual Blood Pressure Diastolic Right
+    item_mappings['224643'] = 'DBP'  #Manual Blood Pressure Diastolic Left
+    item_mappings['8441'] = 'DBP'  #NBP [Diastolic]
+    item_mappings['8364'] = 'DBP'  #ABP [Diastolic]
+    item_mappings['8555'] = 'DBP'  #Arterial BP #2 [Diastolic]
+    item_mappings['8368'] = 'DBP'  #Arterial BP [Diastolic]  
+    item_mappings['225310'] = 'DBP'  #ART BP Diastolic      
+    item_mappings['220051'] = 'DBP'  #Arterial Blood Pressure diastolic 
+    item_mappings['220180'] = 'DBP'  #Non Invasive Blood Pressure diastolic 
+    
+    #Blood Pressure [Mean]  
+    item_mappings['3312'] = 'MBP'  #BP Cuff [Mean] 
+    
+    #Temperature
+    item_mappings['676'] = 'TEMPC' #Temperature C
+    item_mappings['677'] = 'TEMPC'  #Temperature C (calc)
+    item_mappings['223762'] = 'TEMPC'  #Temperature Celsius   
+    item_mappings['678'] = 'TEMPF' #Temperature F
+    item_mappings['679'] = 'TEMPF'  #Temperature F (calc)
+    item_mappings['223761'] = 'TEMPF'  #Temperature Fahrenheit  
+    
+    #Respiratory Rate
+    item_mappings['7884'] = 'RR' #RR
+    item_mappings['618'] = 'RR' #Respiratory Rate
+    item_mappings['220210'] = 'RR' #Respiratory Rate
+    item_mappings['619'] = 'RR' #Respiratory Rate Set
+    item_mappings['224688'] = 'RR' #Respiratory Rate (Set)
+    item_mappings['614'] = 'RR' #Resp Rate (Spont)
+    item_mappings['224689'] = 'RR' #Respiratory Rate (spontaneous)
+    item_mappings['615'] = 'RR' #Resp Rate (Total) 
+    item_mappings['224690'] = 'RR' #Respiratory Rate (Total) 
+    
+    #Saturation Pulseoxymetry
+    item_mappings['646'] = 'SP02'  #SpO2
+    item_mappings['220277'] = 'SP02'  # saturation pulseoxymetry SpO2
+    item_mappings['223769'] = 'SP02_High'  # O2 Saturation Pulseoxymetry Alarm - High
+    item_mappings['223770'] = 'SP02_Low'  # O2 Saturation Pulseoxymetry Alarm - Low 
+    
+    #Albumin
+    item_mappings['3066'] = 'Albumin'  #albumin
+    item_mappings['1521'] = 'Albumin'  #Albumin
+    item_mappings['46564'] = 'Albumin'  #Albumin
+    item_mappings['227456'] = 'Albumin'  #Albumin 
+    item_mappings['45403'] = 'Albumin'  #albumin
+    item_mappings['42832'] = 'Albumin'  #albumin 12.5%
+    item_mappings['44203'] = 'Albumin'  #Albumin 12.5%
+    item_mappings['772'] = 'Albumin'  #Albumin (>3.2) 
+    item_mappings['3727'] = 'Albumin'  #Albumin (3.9-4.8)    
+    item_mappings['30181'] = 'Serum_Albumin'  #Serum Albumin 5%
+    item_mappings['44952'] = 'OR_Albumin'  #OR Albumin 
+    item_mappings['220574'] = 'ZAlbumin'  #ZAlbumin 
+    item_mappings['226981'] = 'Albumin_ApacheIV'  #Albumin_ApacheIV
+    item_mappings['226982'] = 'AlbuminScore_ApacheIV'  #AlbuminScore_ApacheIV     
+    item_mappings['30008'] = 'Albumin'  #Albumin 5%
+    item_mappings['220864'] = 'Albumin'  #Albumin 5%
+    item_mappings['30009'] = 'Albumin'  #Albumin 25%  
+    item_mappings['220862'] = 'Albumin'  #Albumin 25% 
+    item_mappings['220861'] = 'Albumin_Human'  #Albumin (Human) 20%
+    item_mappings['220863'] = 'Albumin_Human'  #Albumin (Human) 4%  
+    
+    #Bun
     item_mappings['227000'] = 'BUN_ApacheIV'  #BUN_ApacheIV
     item_mappings['227001'] = 'BunScore_ApacheIV'  #BunScore_ApacheIV
     item_mappings['1162'] = 'BUN'  # BUN
+    item_mappings['5876'] = 'BUN'  # bun
     item_mappings['225624'] = 'BUN'  #BUN
+    item_mappings['781'] = 'BUN'  #BUN (6-20) 
+    item_mappings['3737'] = 'BUN'  #BUN (6-20)  
+    item_mappings['8220'] = 'Effluent_BUN'  #Effluent BUN 
+ 
+    #International Normalized Ratio (INR)
     item_mappings['1530'] = 'INR'
-    item_mappings['44441'] = 'Calcium'  #
-    item_mappings['3784'] = 'PCO2'
-    item_mappings['812'] = 'HCO3'
-    item_mappings['227005'] = 'Creatinine_ApacheIV'
-    item_mappings['227006'] = 'CreatScore_ApacheIV'
-    item_mappings['4231'] = 'NaCl'
-    item_mappings['1535'] = 'Potassium'
-    item_mappings['227006'] = 'CreatScore_ApacheIV'
+    item_mappings['227467'] = 'INR'
+    
+    #Platelets
+    item_mappings['828'] = 'Platelets' #Platelets
+    item_mappings['225170'] = 'Platelets'  #Platelets
+    item_mappings['30006'] = 'Platelets'  #Platelets
+    item_mappings['30105'] = 'OR_Platelets'  #OR Platelets 
+    
+    #Calcium
+    item_mappings['44441'] = 'Ca'  #calcium
+    item_mappings['44855'] = 'Ca'  #Calcium
+    item_mappings['1522'] = 'Ca'  #Calcium 
+    item_mappings['227525'] = 'Ca'  #Calcium
+    
+    #Creatinine
+    item_mappings['1525'] = 'Creatinine' #Creatinine
+    item_mappings['220615'] = 'Creatinine' #Creatinine 
+    item_mappings['791'] = 'Creatinine' #Creatinine (0-1.3)
+    item_mappings['3750'] = 'Creatinine' #Creatinine (0-0.7)
+    item_mappings['5811'] = 'Urine_Creatinine' #urine creatinine 
+    item_mappings['1919'] = 'Urine_Creatinine' #Urine creat 
+    item_mappings['227005'] = 'Creatinine_ApacheIV' #Creatinine_ApacheIV
+    item_mappings['227006'] = 'CreatScore_ApacheIV' #CreatScore_ApacheIV
+    item_mappings['226752'] = 'Creatinine_ApacheII' #CreatinineApacheIIValue
+    item_mappings['226751'] = 'CreatScore_ApacheII' #CreatinineApacheIIScore
 
+    
+    #carbon dioxide 
+    item_mappings['3784'] = 'PCO2'
+    item_mappings['778'] = 'PCO2_Arterial' #Arterial PaCO2 
+    item_mappings['220235'] = 'PCO2_Arterial' #Arterial CO2 Pressure
+    item_mappings['3774'] = 'PCO2_Venous' #Mix Venous PCO2
+    item_mappings['226062'] = 'PCO2_Venous' #Venous CO2 Pressure 
+    item_mappings['227036'] = 'PCO2_ApacheIV' #PCO2_ApacheIV  
+    
+    #Bicarbonate
+    item_mappings['812'] = 'HCO3' #HCO3
+    item_mappings['46362'] = 'HCO3' #bicarbonate
+    item_mappings['44166'] = 'HCO3' #BICARBONATE-HCO3
+    item_mappings['227443'] = 'HCO3' #HCO3 (serum)
+    item_mappings['226759'] = 'HCO3_ApacheII' #HCO3ApacheIIValue
+    item_mappings['226760'] = 'HCO3Score_ApacheII' #HCO3Score
+    item_mappings['225165'] = 'HCO3' #Bicarbonate Base
+    
+    #Glucose
+    item_mappings['1529'] = 'Glucose' #Glucose
+    item_mappings['807'] = 'Fingerstick Glucose'
+    item_mappings['1455'] = 'Fingerstick Glucose' #fingerstick glucose
+    item_mappings['2338'] = 'Fingerstick Glucose' #finger stick glucose
+    item_mappings['225664'] = 'Fingerstick Glucose' #Glucose finger stick
+    item_mappings['1812'] = 'abg_glucose' #abg: glucose
+    item_mappings['811'] = 'Glucose_70_105'
+    item_mappings['227015'] =  'Glucose_ApacheIV'
+    item_mappings['227016'] =  'GlucoseScore_ApacheIV'
+    item_mappings['3816'] = 'Urine Glucose'  
+    item_mappings['228388'] = 'Glucose (whole blood) (soft)'
+    item_mappings['226537'] = 'Glucose (whole blood)'
+    item_mappings['227976'] = 'Boost Glucose Control (1/4)'
+    item_mappings['227977'] = 'Boost Glucose Control (1/2)'
+    item_mappings['227978'] = 'Boost Glucose Control (3/4)'
+    item_mappings['227979'] = 'Boost Glucose Control (Full)'
+    item_mappings['3744'] = 'Blood Glucose'
+    item_mappings['3745'] = 'Blood Glucose'
+    item_mappings['3447'] = 'Glucose Monitor'
+    item_mappings['220621'] = 'Glucose' #Glucose (serum)
+
+    #Sodium
+    item_mappings['1536'] = 'Sodium'
+    item_mappings['4231'] = 'NaCl'
+    #Postassium
+    item_mappings['1535'] = 'K' #Potassium
+    item_mappings['41956'] = 'K' #Potassium
+    item_mappings['44711'] = 'K' #potassium 
+    item_mappings['226771'] = 'Potassium_ApacheIIScore' #PotassiumApacheIIScore
+    item_mappings['226772'] = 'Potassium_ApacheIIValue' #PotassiumApacheIIValue
+    
     return item_mappings
 
 
