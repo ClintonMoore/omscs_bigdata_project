@@ -259,7 +259,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
             for line in orig_file:
                 temp_file.write(line)
                 i = i + 1
-                if i > 30000000:
+                if i > 20000:
                     break
         temp_file.close()
 
