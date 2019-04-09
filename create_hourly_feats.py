@@ -6,7 +6,7 @@ import pandas as pd
 
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, Row, Window, functions as F
-from pyspark.sql.types import IntegerType, StringType, DoubleType
+from pyspark.sql.types import IntegerType, StringType, DoubleType, StructType, StructField, ArrayType, FloatType
 from pyspark.sql.functions import udf, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType, explode, collect_list, create_map
 from local_configuration import *
 import csv
@@ -99,7 +99,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
             for line in orig_file:
                 temp_file.write(line)
                 i = i + 1
-                if i > 20000:
+                if i > 30000000:
                     break
         temp_file.close()
 
@@ -181,13 +181,13 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
         df_single_feature = df_single_feature.drop(df_single_feature.ITEMNAME).withColumnRenamed('VALUE', itemname)
         cartesian_hadm_hours = cartesian_hadm_hours.join(df_single_feature, ['HADM_ID', 'HOUR'], how='left')
 
-    cartesian_hadm_hours.show(150)
+    #cartesian_hadm_hours.show(150)
     df_hadm_hourly_feature_arrays = cartesian_hadm_hours.select('HADM_ID', 'HOUR', F.struct(itemnames).alias('all_temporal_feats'))
-    df_hadm_hourly_feature_arrays.show(150)
+    #df_hadm_hourly_feature_arrays.show(150)
 
 
     df_hadm_all_hour_feats = df_hadm_hourly_feature_arrays.groupBy("HADM_ID").agg(collect_list(create_map(col("HOUR"),col('all_temporal_feats'))).alias('all_hours_all_temporal_feats'))
-    df_hadm_all_hour_feats.show(150)
+    #df_hadm_all_hour_feats.show(150)
 
     def transformMapToArrayFn(row):
         new_row_dict = {}
@@ -202,10 +202,30 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
                 for itemname in itemnames:
                     features_array_order_of_itemnames.append(features_dict_for_hour[itemname])
                     sequences[h] = features_array_order_of_itemnames
-        return Row(**{'HADM_ID':row.HADM_ID, 'all_hours_all_temporal_feats' : sequences})
+        #return Row(**{'HADM_ID':row.HADM_ID, 'all_hours_all_temporal_feats' : sequences})
+        return (row.HADM_ID, sequences)
 
     rdd_hadm_individual_metrics_hadm_to_sequences = df_hadm_all_hour_feats.rdd.map(transformMapToArrayFn)
-    print(rdd_hadm_individual_metrics_hadm_to_sequences.take(10))
+    #print(rdd_hadm_individual_metrics_hadm_to_sequences.take(10))
+
+    schema = StructType([StructField("HADMID", StringType(), True), StructField("SEQUENCES", ArrayType(ArrayType(FloatType()), containsNull=True), True)])
+    df_hadm_individual_metrics_hadm_to_sequences = spark.createDataFrame(rdd_hadm_individual_metrics_hadm_to_sequences, schema=schema)
+
+    def array_to_string(my_list):
+        return '[' + ','.join([str(elem) for elem in my_list]) + ']'
+
+    array_to_string_udf = udf(array_to_string, StringType())
+
+    df_hadm_individual_metrics_hadm_to_sequences = df_hadm_individual_metrics_hadm_to_sequences.withColumn('SEQUENCES_STR', array_to_string_udf(df_hadm_individual_metrics_hadm_to_sequences["SEQUENCES"]))
+    df_hadm_individual_metrics_hadm_to_sequences = df_hadm_individual_metrics_hadm_to_sequences.drop("SEQUENCES")
+
+    output_dir = os.path.join(PATH_OUTPUT, 'hadm_sequences')  #must be absolute path
+
+    import shutil
+    shutil.rmtree(output_dir)
+
+    df_hadm_individual_metrics_hadm_to_sequences.coalesce(1).write.format('com.databricks.spark.csv').options(header='true').save('file:///' + output_dir)
+
 
 
 
@@ -218,8 +238,7 @@ if __name__ == '__main__':
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
 
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
-    #filter_chart_events(sc, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
-
+    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
 
     aggregate_temporal_features_hourly(filtered_chart_events_path)
 
