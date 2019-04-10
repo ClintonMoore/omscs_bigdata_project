@@ -296,10 +296,8 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
         for rdd_row in filtered_chartevents.rdd.toLocalIterator():
             w.writerow(rdd_row.asDict())
 
+            
 
-
-
-           
 #Standardize features in a new column Standardized_Value  (we can change the value in place VALUENUM)
 def standardize_features (df_filtered_chartevents): 
     temp = df_filtered_chartevents.select('ITEMNAME','VALUENUM')
