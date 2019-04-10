@@ -305,7 +305,8 @@ def standardize_features (df_filtered_chartevents):
     cartesian_min_quantile = min_quantile.join(df_filtered_chartevents, on='ITEMNAME', how='left')
     #TODO: Verify the return value when the min and quantile are equal
     udf_standardize = F.udf( lambda x: (x[0]-x[1]) / (x[2]-x[1] ) if x[2]!=x[1] else  float(x[0]) , DoubleType()) 
-    standardized_df = cartesian_min_quantile.withColumn("Standardized_Value", udf_standardize(array("VALUENUM", "Min", "Quantile95")))
+    #standardized_df = cartesian_min_quantile.withColumn("Standardized_Value", udf_standardize(array("VALUENUM", "Min", "Quantile95")))
+    standardized_df = cartesian_min_quantile.withColumn("VALUENUM", udf_standardize(array("VALUENUM", "Min", "Quantile95")))
     
     return standardized_df.drop("Min","Quantile95")
 
@@ -314,7 +315,8 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     num_hours = 48
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
-    hourly_averages = df_filtered_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
+    df_standardized_chartevents = standardize_features (df_filtered_chartevents)
+    hourly_averages = df_standardized_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
 
     #hourly_averages.show(n=15)
 
