@@ -305,7 +305,7 @@ def create_dataset(spark, admissions_csv_path, sequences_csv_path):
     
     df = hadm_sequences.join(mortality, on='HADM_ID', how='left')
     labels =  df.select ('HOSPITAL_EXPIRE_FLAG').rdd.flatMap(lambda x: x).collect()
-    seqs = df.rdd.flatMap(lambda x: (x[2], x[0], x[1])).collect()
+    seqs = df.rdd.map(lambda x: (x[2], x[0], x[1])).collect()
     
     return labels, seqs
 
