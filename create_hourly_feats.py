@@ -297,6 +297,20 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
             w.writerow(rdd_row.asDict())
 
             
+             
+#Returns a list of mortality labels and  a list of tuples of (SUBJECT_ID, HADM_ID, sequences)
+def create_dataset(spark, admissions_csv_path, sequences_csv_path):
+    hadm_sequences= spark.read.csv(sequences_csv_path, header=True, inferSchema=True).withColumnRenamed('HADMID', 'HADM_ID')
+    mortality = spark.read.csv(admissions_csv_path , header=True, inferSchema="false").select('SUBJECT_ID', 'HADM_ID', 'HOSPITAL_EXPIRE_FLAG')
+    
+    df = hadm_sequences.join(mortality, on='HADM_ID', how='left')
+    labels =  df.select ('HOSPITAL_EXPIRE_FLAG').rdd.flatMap(lambda x: x).collect()
+    seqs = df.rdd.flatMap(lambda x: (x[2], x[0], x[1])).collect() 
+    #Todo check patients admission with null HOSPITAL_EXPIRE_FLAG
+    #df.select (df.HOSPITAL_EXPIRE_FLAG.isNull()).count() = 32
+    return labels, seqs
+
+
 
 #Standardize features in a new column Standardized_Value  (we can change the value in place VALUENUM)
 def standardize_features (df_filtered_chartevents): 
