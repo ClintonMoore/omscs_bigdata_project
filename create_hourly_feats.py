@@ -7,7 +7,7 @@ import pandas as pd
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, Row, Window, functions as F
 from pyspark.sql.types import IntegerType, StringType, DoubleType, StructType, StructField, ArrayType, FloatType
-from pyspark.sql.functions import udf, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType, explode, collect_list, create_map
+from pyspark.sql.functions import array, udf, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType, explode, collect_list, create_map
 from local_configuration import *
 import csv
 import math
@@ -299,6 +299,17 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
 
 
+           
+#Standardize features in a new column Standardized_Value  (we can change the value in place VALUENUM)
+def standardize_features (df_filtered_chartevents): 
+    temp = df_filtered_chartevents.select('ITEMNAME','VALUENUM')
+    min_quantile = temp.groupBy('ITEMNAME').agg(F.min('VALUENUM').alias("Min"), F.expr('percentile_approx(VALUENUM, 0.95)').alias("Quantile95"))
+    cartesian_min_quantile = min_quantile.join(df_filtered_chartevents, on='ITEMNAME', how='left')
+    #TODO: Verify the return value when the min and quantile are equal
+    udf_standardize = F.udf( lambda x: (x[0]-x[1]) / (x[2]-x[1] ) if x[2]!=x[1] else  float(x[0]) , DoubleType()) 
+    standardized_df = cartesian_min_quantile.withColumn("Standardized_Value", udf_standardize(array("VALUENUM", "Min", "Quantile95")))
+    
+    return standardized_df.drop("Min","Quantile95")
 
 
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
