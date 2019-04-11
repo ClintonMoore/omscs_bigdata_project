@@ -5,9 +5,10 @@ import pyspark
 import pandas as pd
 
 from pyspark import SparkConf, SparkContext
-from pyspark.sql import SQLContext, Row, Window, functions as F
+from pyspark.sql import SQLContext, DataFrame, Row, Window, functions as F
 from pyspark.sql.types import IntegerType, StringType, DoubleType, StructType, StructField, ArrayType, FloatType
 from pyspark.sql.functions import array, udf, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType, explode, collect_list, create_map
+from functools import reduce
 from local_configuration import *
 import csv
 import math
@@ -287,7 +288,8 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     filtered_chartevents = filtered_chartevents.filter(col('HOUR_OF_OBS_AFTER_HADM') <= 48)
 
 
-    #TODO: REMOVE columns that are not needed (keep CHARTEVENTS cols, ITEMNAME, HOUR_OF_OBS_AFTER_HADM
+    #REMOVE columns that are not needed (keep CHARTEVENTS cols, ITEMNAME, HOUR_OF_OBS_AFTER_HADM
+    filtered_chartevents = reduce(DataFrame.drop, ["ADMITTIME", "DISCHTIME", "DEATHTIME", "ADMISSION_TYPE", "ADMISSION_LOCATION", "DISCHARGE_LOCATION", "INSURANCE", "LANGUAGE", "RELIGION", "MARITAL_STATUS", "ETHNICITY", "EDREGTIME", "EDOUTTIME", "DIAGNOSIS", "HOSPITAL_EXPIRE_FLAG", "HAS_CHARTEVENTS_DATA"], filtered_chartevents)
 
     with open(filtered_chrtevents_outfile_path, "w+") as f:
         w = csv.DictWriter(f, fieldnames=filtered_chartevents.schema.names)
