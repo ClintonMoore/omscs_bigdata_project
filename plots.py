@@ -24,10 +24,7 @@ def plot_learning_curves(train_losses, valid_losses, train_accuracies, valid_acc
 
 # Following the example provided in https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html#sphx-glr-auto-examples-model-selection-plot-confusion-matrix-py
  
-def plot_confusion_matrix(results, class_names):
-	# TODO: Make a confusion matrix plot.
-	# TODO: You do not have to return the plots.
-	# TODO: You can save plots as files by codes here or an interactive way according to your preference.
+def plot_confusion_matrix(results, class_names): 
 		
 	y_true, y_pred = zip(*results) 
 	cm=  confusion_matrix(y_true, y_pred )
