@@ -248,7 +248,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
     #use subset of large CHARTEVENTS.csv file for faster development
     chrtevents_file_path_to_use = orig_chrtevents_file_path
-    use_sample_subset_lines = True
+    use_sample_subset_lines = False
     if use_sample_subset_lines:
 
         chartevents_sample_temp_file = "CHARTEVENTS_SAMPLE.csv"
@@ -260,7 +260,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
             for line in orig_file:
                 temp_file.write(line)
                 i = i + 1
-                if i > 20000:
+                if i > 5000:
                     break
         temp_file.close()
 
@@ -329,7 +329,9 @@ def standardize_features (df_filtered_chartevents):
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
     num_hours = 48
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
+
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
+    df_filtered_chartevents.where(df_filtered_chartevents.VALUENUM.isNotNull())
     df_standardized_chartevents = standardize_features (df_filtered_chartevents)
     hourly_averages = df_standardized_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
 
@@ -424,16 +426,11 @@ if __name__ == '__main__':
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
 
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
-    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
+    #filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
 
     aggregate_temporal_features_hourly(filtered_chart_events_path)
 
 
     #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
 
-    #standardize each feature as in the paper  -- in their preprocess.py this is what they did:  (values - min_feat_value) / (95thpercentile - min_value)   from their preprocessing.py:  dfs[idx][c] = (dfs[idx][c]-dfs[idx][c].min() )/ (dfs[idx][c].quantile(.95) - dfs[idx][c].min())
-
-    #for each admission, for each hourly bin, construct feature vector
-
-    #write feature file with list of tuple (patientid.hadmid, list patient-admission sequences 48 long each)
     #get mortality labels for admissions - if the patient died during the admission.   These are located int ADMISSIONS.csv table.  Must be in same ORDER (and length) as feature file.
