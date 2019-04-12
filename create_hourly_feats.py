@@ -407,7 +407,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
         import shutil
         shutil.rmtree(output_dir)
 
-    df_hadm_individual_metrics_hadm_to_sequences.coalesce(1).write.format('com.databricks.spark.csv').options(header='true').save('file:///' + output_dir)
+    df_hadm_individual_metrics_hadm_to_sequences_final.coalesce(1).write.format('com.databricks.spark.csv').options(header='true').save('file:///' + output_dir)
     return df_hadm_individual_metrics_hadm_to_sequences
 
 
