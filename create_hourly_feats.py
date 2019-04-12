@@ -426,10 +426,6 @@ if __name__ == '__main__':
     
     hadm_sequences = aggregate_temporal_features_hourly(filtered_chart_events_path)
     hadm_ids, labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
-    
-    pickle.dump(test_ids, open(os.path.join(PATH_OUTPUT, "mortality.ids.test"), 'wb'), pickle.HIGHEST_PROTOCOL)
-    pickle.dump(test_labels, open(os.path.join(PATH_OUTPUT, "mortality.labels.test"), 'wb'), pickle.HIGHEST_PROTOCOL)
-    pickle.dump(test_seqs, open(os.path.join(PATH_OUTPUT, "mortality.seqs.test"), 'wb'), pickle.HIGHEST_PROTOCOL)
 
     pickle.dump(labels, open(os.path.join(PATH_OUTPUT, "hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)	
     pickle.dump(seqs, open(os.path.join(PATH_OUTPUT, "hadm.seqs"), 'wb'), pickle.HIGHEST_PROTOCOL)
