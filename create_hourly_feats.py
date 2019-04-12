@@ -399,8 +399,8 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
 
     array_to_string_udf = udf(array_to_string, StringType())
 
-    df_hadm_individual_metrics_hadm_to_sequences = df_hadm_individual_metrics_hadm_to_sequences.withColumn('SEQUENCES_STR', array_to_string_udf(df_hadm_individual_metrics_hadm_to_sequences["SEQUENCES"]))
-    df_hadm_individual_metrics_hadm_to_sequences = df_hadm_individual_metrics_hadm_to_sequences.drop("SEQUENCES")
+    df_hadm_individual_metrics_hadm_to_sequences_final = df_hadm_individual_metrics_hadm_to_sequences.withColumn('SEQUENCES_STR', array_to_string_udf(df_hadm_individual_metrics_hadm_to_sequences["SEQUENCES"]))
+    df_hadm_individual_metrics_hadm_to_sequences_final = df_hadm_individual_metrics_hadm_to_sequences_final.drop("SEQUENCES")
 
     output_dir = os.path.join(PATH_OUTPUT, 'hadm_sequences')  #must be absolute path
 
@@ -409,6 +409,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
         shutil.rmtree(output_dir)
 
     df_hadm_individual_metrics_hadm_to_sequences.coalesce(1).write.format('com.databricks.spark.csv').options(header='true').save('file:///' + output_dir)
+    return df_hadm_individual_metrics_hadm_to_sequences
 
 
 
@@ -423,8 +424,9 @@ if __name__ == '__main__':
 
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
     filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
-
-    aggregate_temporal_features_hourly(filtered_chart_events_path)
+    
+    hadm_sequences = aggregate_temporal_features_hourly(filtered_chart_events_path)
+    labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
 
 
     #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
