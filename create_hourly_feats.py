@@ -242,7 +242,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
     #use subset of large CHARTEVENTS.csv file for faster development
     chrtevents_file_path_to_use = orig_chrtevents_file_path
-    use_sample_subset_lines = False
+    use_sample_subset_lines = True
     if use_sample_subset_lines:
 
         chartevents_sample_temp_file = "CHARTEVENTS_SAMPLE.csv"
@@ -324,8 +324,10 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     num_hours = 48
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
 
-    df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
-    df_filtered_chartevents.where(df_filtered_chartevents.VALUENUM.isNotNull())
+    df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
+    df_filtered_chartevents = df_filtered_chartevents.drop(df_filtered_chartevents.VALUENUM).withColumnRenamed('VALUENUM_INT', 'VALUENUM')
+    df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"])
+    print(df_filtered_chartevents.count())
     df_standardized_chartevents = standardize_features (df_filtered_chartevents)
     hourly_averages = df_standardized_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
 
