@@ -295,8 +295,8 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
             
              
 #Returns a list of mortality labels and  a list of tuples of (SUBJECT_ID, HADM_ID, sequences)
-def create_dataset(spark, admissions_csv_path, sequences_csv_path):
-    hadm_sequences= spark.read.csv(sequences_csv_path, header=True, inferSchema=True).withColumnRenamed('HADMID', 'HADM_ID')
+def create_dataset(spark, admissions_csv_path, hadm_sequences):
+    hadm_sequences= hadm_sequences.withColumnRenamed('HADMID', 'HADM_ID')
     mortality = spark.read.csv(admissions_csv_path , header=True, inferSchema="false").select('SUBJECT_ID', 'HADM_ID', 'HOSPITAL_EXPIRE_FLAG')
     
     df = hadm_sequences.join(mortality, on='HADM_ID', how='left')
