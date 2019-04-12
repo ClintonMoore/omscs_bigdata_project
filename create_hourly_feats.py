@@ -294,16 +294,15 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
             
              
-#Returns a list of mortality labels and  a list of tuples of (SUBJECT_ID, HADM_ID, sequences)
+#Returns a list of admission ids, a list of mortality labels and  a list of sequences
 def create_dataset(spark, admissions_csv_path, hadm_sequences):
     hadm_sequences= hadm_sequences.withColumnRenamed('HADMID', 'HADM_ID')
     mortality = spark.read.csv(admissions_csv_path , header=True, inferSchema="false").select('SUBJECT_ID', 'HADM_ID', 'HOSPITAL_EXPIRE_FLAG')
-    
     df = hadm_sequences.join(mortality, on='HADM_ID', how='left')
     labels =  df.select ('HOSPITAL_EXPIRE_FLAG').rdd.flatMap(lambda x: x).collect()
-    seqs = df.rdd.map(lambda x: (x[2], x[0], x[1])).collect()
-    
-    return labels, seqs
+    seqs = df.rdd.map(lambda x:  x[1]).collect()  
+    hadm_ids = df.rdd.map(lambda x:  x[0]).collect() 
+    return hadm_ids, labels, seqs
 
 
 
@@ -426,10 +425,15 @@ if __name__ == '__main__':
     filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
     
     hadm_sequences = aggregate_temporal_features_hourly(filtered_chart_events_path)
-    labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
+    hadm_ids, labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
     
-    pickle.dump(labels, open(os.path.join(PATH_OUTPUT, "hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)
-	pickle.dump(seqs, open(os.path.join(PATH_OUTPUT, "hadm.seqs"), 'wb'), pickle.HIGHEST_PROTOCOL)
+    pickle.dump(test_ids, open(os.path.join(PATH_OUTPUT, "mortality.ids.test"), 'wb'), pickle.HIGHEST_PROTOCOL)
+    pickle.dump(test_labels, open(os.path.join(PATH_OUTPUT, "mortality.labels.test"), 'wb'), pickle.HIGHEST_PROTOCOL)
+    pickle.dump(test_seqs, open(os.path.join(PATH_OUTPUT, "mortality.seqs.test"), 'wb'), pickle.HIGHEST_PROTOCOL)
+
+    pickle.dump(labels, open(os.path.join(PATH_OUTPUT, "hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)	
+    pickle.dump(seqs, open(os.path.join(PATH_OUTPUT, "hadm.seqs"), 'wb'), pickle.HIGHEST_PROTOCOL)
+    pickle.dump(hadm_ids, open(os.path.join(PATH_OUTPUT, "hadm.ids"), 'wb'), pickle.HIGHEST_PROTOCOL)
 
 
     #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
