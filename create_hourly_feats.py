@@ -327,7 +327,6 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
     df_filtered_chartevents = df_filtered_chartevents.drop(df_filtered_chartevents.VALUENUM).withColumnRenamed('VALUENUM_INT', 'VALUENUM')
     df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"])
-    print(df_filtered_chartevents.count())
     df_standardized_chartevents = standardize_features (df_filtered_chartevents)
     hourly_averages = df_standardized_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
 
@@ -405,8 +404,9 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
 
     output_dir = os.path.join(PATH_OUTPUT, 'hadm_sequences')  #must be absolute path
 
-    import shutil
-    shutil.rmtree(output_dir)
+    if os.path.exists(output_dir):
+        import shutil
+        shutil.rmtree(output_dir)
 
     df_hadm_individual_metrics_hadm_to_sequences.coalesce(1).write.format('com.databricks.spark.csv').options(header='true').save('file:///' + output_dir)
 
@@ -422,7 +422,7 @@ if __name__ == '__main__':
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
 
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
-    #filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
+    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
 
     aggregate_temporal_features_hourly(filtered_chart_events_path)
 
