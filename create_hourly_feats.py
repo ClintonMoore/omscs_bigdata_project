@@ -427,6 +427,9 @@ if __name__ == '__main__':
     
     hadm_sequences = aggregate_temporal_features_hourly(filtered_chart_events_path)
     labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
+    
+    pickle.dump(labels, open(os.path.join(PATH_OUTPUT, "hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)
+	pickle.dump(seqs, open(os.path.join(PATH_OUTPUT, "hadm.seqs"), 'wb'), pickle.HIGHEST_PROTOCOL)
 
 
     #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
