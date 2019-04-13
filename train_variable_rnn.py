@@ -11,6 +11,7 @@ from utils import train, evaluate
 from plots import plot_learning_curves, plot_confusion_matrix
 from mydatasets import calculate_num_features, VisitSequenceWithLabelDataset, visit_collate_fn
 from mymodels import MyVariableRNN
+from sklearn.metrics import recall_score, roc_auc_score, precision_score, f1_score
 
 # Set a correct path to the data files that you preprocessed
 PATH_TRAIN_SEQS = "data/processed/hadm.seqs"
@@ -80,3 +81,10 @@ test_loss, test_accuracy, test_results = evaluate(best_model, device, test_loade
 class_names = ['Alive', 'Dead']
 plot_confusion_matrix(test_results, class_names)
 
+y_true = [x[0] for x in valid_results]
+y_pred = [x[1] for x in valid_results]
+
+print('Precision Score: ' + str(precision_score(y_true, y_pred, pos_label=0)))
+print('Recall Score: ' + str(recall_score(y_true, y_pred, pos_label=0)))
+print('F1 Score: ' + str(f1_score(y_true, y_pred, pos_label=0)))
+print('ROC AUC Score: ' + str(roc_auc_score(y_true, y_pred)))
