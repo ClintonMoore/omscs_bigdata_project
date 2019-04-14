@@ -2,6 +2,8 @@ import os
 import time
 import numpy as np
 import torch
+from sklearn.metrics import roc_curve, auc
+
 
 
 class AverageMeter(object):
@@ -121,3 +123,9 @@ def evaluate(model, device, data_loader, criterion, print_freq=10):
 					i, len(data_loader), batch_time=batch_time, loss=losses, acc=accuracy))
 
 	return losses.avg, accuracy.avg, results
+
+
+def get_roc_auc(actual, predicted):
+	fpr, tpr, _ = roc_curve(actual, predicted)
+	roc_auc = auc(fpr, tpr)
+	return roc_auc

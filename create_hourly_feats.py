@@ -401,13 +401,6 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     df_hadm_individual_metrics_hadm_to_sequences_final = df_hadm_individual_metrics_hadm_to_sequences.withColumn('SEQUENCES_STR', array_to_string_udf(df_hadm_individual_metrics_hadm_to_sequences["SEQUENCES"]))
     df_hadm_individual_metrics_hadm_to_sequences_final = df_hadm_individual_metrics_hadm_to_sequences_final.drop("SEQUENCES")
 
-    output_dir = os.path.join(PATH_OUTPUT, 'hadm_sequences')  #must be absolute path
-
-    if os.path.exists(output_dir):
-        import shutil
-        shutil.rmtree(output_dir)
-
-    df_hadm_individual_metrics_hadm_to_sequences_final.coalesce(1).write.format('com.databricks.spark.csv').options(header='true').save('file:///' + output_dir)
     return df_hadm_individual_metrics_hadm_to_sequences
 
 
@@ -416,7 +409,9 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
 
 if __name__ == '__main__':
 
-    conf = SparkConf().setMaster("local[4]").setAppName("My App")
+    conf = SparkConf().setMaster("local[4]").setAppName("My App")#\
+        #.set("spark.driver.memory", "20g") \
+        #.set("spark.executor.memory", "3g")
     sc = SparkContext(conf=conf)
     spark = SQLContext(sc)
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
@@ -433,5 +428,3 @@ if __name__ == '__main__':
 
 
     #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
-
-    #get mortality labels for admissions - if the patient died during the admission.   These are located int ADMISSIONS.csv table.  Must be in same ORDER (and length) as feature file.
