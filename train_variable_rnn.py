@@ -102,10 +102,10 @@ plot_learning_curves(train_losses, valid_losses, train_accuracies, valid_accurac
 plot_learning_curves_roc(train_rocs, valid_rocs, filename='learning_curves_roc.png')
 
 train_loss, train_accuracy, train_results = evaluate(model, device, train_loader, criterion)
-plot_confusion_matrix(train_results, ["Dead", "Alive"])
+plot_confusion_matrix(train_results, ["Alive", "Dead"])
 
 valid_loss, valid_accuracy, valid_results = evaluate(model, device, valid_loader, criterion)
-plot_confusion_matrix(valid_results, ["Dead", "Alive"])
+plot_confusion_matrix(valid_results, ["Alive", "Dead"])
 
 valid_results = np.array(valid_results)
 actual = valid_results[:, :1]
