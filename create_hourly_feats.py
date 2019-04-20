@@ -358,13 +358,13 @@ def standardize_features (df_filtered_chartevents):
 
 #Convert all temperature values in dataframe to Celsius
 def temp_conversion (df_filtered_chartevents):
-
+    
     def fahrenheit_celsius(itemid, value):
         if (itemid=='678') or (itemid=='223761'):
-            return float((value-32) * (5 /9)) 
+            return (float(value)-32) * (5 /9)
         else:
             return float(value)
-        
+ 
     udf_conversion  = udf(fahrenheit_celsius, DoubleType())
     df = df_filtered_chartevents.withColumn("VALUENUM", udf_conversion("ITEMID","VALUENUM"))
     return df
@@ -373,10 +373,10 @@ def temp_conversion (df_filtered_chartevents):
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
     num_hours = 48
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
+    df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"])
     df_filtered_chartevents = temp_conversion (df_filtered_chartevents)
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
     df_filtered_chartevents = df_filtered_chartevents.drop(df_filtered_chartevents.VALUENUM).withColumnRenamed('VALUENUM_INT', 'VALUENUM')
-    df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"])
     df_standardized_chartevents = standardize_features (df_filtered_chartevents)
     hourly_averages = df_standardized_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
 
