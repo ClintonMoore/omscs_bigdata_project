@@ -126,9 +126,11 @@ def get_event_key_ids():
     item_mappings['3312'] = 'MBP_Limb'  #BP Cuff [Mean]  (cc/min)  
     
     #Temperature
-    item_mappings['676'] = 'TEMPC' #Temperature C
-    item_mappings['677'] = 'TEMPC'  #Temperature C (calc)
-    item_mappings['223762'] = 'TEMPC'  #Temperature Celsius    
+    item_mappings['676'] = 'TEMP' #Temperature C
+    #item_mappings['677'] = 'TEMPC'  #Temperature C (calc)
+    item_mappings['223762'] = 'TEMP'  #Temperature Celsius    
+    item_mappings['678'] = 'TEMP' #Temperature F
+    item_mappings['223761'] = 'TEMP'  #Temperature Fahrenheit
     
     #Respiratory Rate
     item_mappings['7884'] = 'RR' #RR
