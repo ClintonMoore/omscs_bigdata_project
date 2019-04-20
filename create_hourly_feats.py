@@ -258,7 +258,16 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
                     break
         temp_file.close()
 
-
+    # LOS ***
+    #*********
+    
+    los_path = "C:/6250/project/DATA_MIMICIII/ICUSTAYS.csv"
+    df_los = spark.read.csv(los_path, header=True, inferSchema="false")
+    
+    df_los = df_los.filter(col('LOS') >=1)
+    df_los =    reduce(DataFrame.drop,  ["ROW_ID","SUBJECT_ID","ICUSTAY_ID","DBSOURCE","FIRST_CAREUNIT","LAST_CAREUNIT","FIRST_WARDID","LAST_WARDID","INTIME","OUTTIME"], df_los)
+        
+   
 
     df_chartevents = spark.read.csv(chrtevents_file_path_to_use, header=True, inferSchema="false")
 
@@ -280,7 +289,8 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
     #filter out all observations where X > 48  (occurred after initial 48 hours of admission)
     filtered_chartevents = filtered_chartevents.filter(col('HOUR_OF_OBS_AFTER_HADM') <= 48)
-
+    
+    filtered_chartevents = filtered_chartevents.join(df_los, ['HADM_ID'])
 
     #REMOVE columns that are not needed (keep CHARTEVENTS cols, ITEMNAME, HOUR_OF_OBS_AFTER_HADM
     filtered_chartevents = reduce(DataFrame.drop, ["ADMITTIME", "DISCHTIME", "DEATHTIME", "ADMISSION_TYPE", "ADMISSION_LOCATION", "DISCHARGE_LOCATION", "INSURANCE", "LANGUAGE", "RELIGION", "MARITAL_STATUS", "ETHNICITY", "EDREGTIME", "EDOUTTIME", "DIAGNOSIS", "HOSPITAL_EXPIRE_FLAG", "HAS_CHARTEVENTS_DATA"], filtered_chartevents)
