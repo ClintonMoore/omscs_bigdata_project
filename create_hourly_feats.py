@@ -261,7 +261,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     # LOS ***
     #*********
     
-    los_path = "C:/6250/project/DATA_MIMICIII/ICUSTAYS.csv"
+    los_path =  os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, "ICUSTAYS.csv")
     df_los = spark.read.csv(los_path, header=True, inferSchema="false")
     
     df_los = df_los.filter(col('LOS') >=1)
