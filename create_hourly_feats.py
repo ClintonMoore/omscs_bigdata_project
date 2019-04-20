@@ -38,7 +38,6 @@ def flatten(l, ltypes=(list, tuple)):  #from http://rightfootin.blogspot.com/200
     return ltype(l)
 
 
-
 def translate(mapping):
     def translate_(col):
         return mapping.get(col)
@@ -261,7 +260,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     # LOS ***
     #*********
     
-    los_path = "C:/6250/project/DATA_MIMICIII/ICUSTAYS.csv"
+    los_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, "ICUSTAYS.csv")
     df_los = spark.read.csv(los_path, header=True, inferSchema="false")
     
     df_los = df_los.filter(col('LOS') >=1)
@@ -399,7 +398,6 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
                 for itemname in itemnames:
                     features_array_order_of_itemnames.append(features_dict_for_hour[itemname])
                     sequences[h] = features_array_order_of_itemnames
-        #return Row(**{'HADM_ID':row.HADM_ID, 'all_hours_all_temporal_feats' : sequences})
         return (row.HADM_ID, sequences)
 
     rdd_hadm_individual_metrics_hadm_to_sequences = df_hadm_all_hour_feats.rdd.map(transformMapToArrayFn)
