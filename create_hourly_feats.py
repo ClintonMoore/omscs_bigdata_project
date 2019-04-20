@@ -448,20 +448,51 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     rdd_hadm_individual_metrics_hadm_to_sequences = df_hadm_all_hour_feats.rdd.map(transformMapToArrayFn)
     #print(rdd_hadm_individual_metrics_hadm_to_sequences.take(10))
 
-    schema = StructType([StructField("HADMID", StringType(), True), StructField("SEQUENCES", ArrayType(ArrayType(FloatType()), containsNull=True), True)])
-    df_hadm_individual_metrics_hadm_to_sequences = spark.createDataFrame(rdd_hadm_individual_metrics_hadm_to_sequences, schema=schema)
-
-    def array_to_string(my_list):
-        return '[' + ','.join([str(elem) for elem in my_list]) + ']'
-
-    array_to_string_udf = udf(array_to_string, StringType())
-
-    df_hadm_individual_metrics_hadm_to_sequences_final = df_hadm_individual_metrics_hadm_to_sequences.withColumn('SEQUENCES_STR', array_to_string_udf(df_hadm_individual_metrics_hadm_to_sequences["SEQUENCES"]))
-    df_hadm_individual_metrics_hadm_to_sequences_final = df_hadm_individual_metrics_hadm_to_sequences_final.drop("SEQUENCES")
-
-    return df_hadm_individual_metrics_hadm_to_sequences
+    return rdd_hadm_individual_metrics_hadm_to_sequences
 
 
+
+def get_icd9_feats(sparkSQLContext):
+
+    top25_icd9_codes = ['4019', '4280', '42731', '41401', '5849', '25000', '2724', '51881', '5990', '53081', '2720', '2859', '486', '2449', '2851', '2762', '496', '99592', '5070', '389', '5859', '40390', '311', '2875', '3051'] #from supp doc here: https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/jamiaopen/1/1/10.1093_jamiaopen_ooy011/9/ooy011_supplemental_materials.docx?Expires=1555865667&Signature=qKYo3JhhWHA6AxWaf007UiK9Yp8thafIVKYoO6lVETi3nW4h7KzoD4XumvO8tU7aBTl6PM0zIOTvzfPFvJqqVkCzpj-KvwwfKH5lz5lpkPlzFkEhl7hd-VDGW-DxC1TiYAnGFom1u2U6pndj9JcBJLMWTwQ4wSxPEg3ZoO3Wpa9HLz71xyy1Q1sjCfx99onRsmMmF2Rz2dcol6tU-YyqQoGxJ5QWpuqYaYH0BuEYhfRXedXhUxAV0TsR3mjb9xeMjXs6OlJoZY3pO6gcSRj98Nb8u5N9SrbsuRTeEtW31gwE1ENZWvqOTguL6fpicWu9zrmeFczCpt5lUF3br7qf5A__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
+    idxs_top_25_codes = range(len(top25_icd9_codes))
+    df_diagnoses = sparkSQLContext.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'DIAGNOSES_ICD.csv'), header=True, inferSchema="false")
+    df_diagnoses = df_diagnoses.filter(df_diagnoses.ICD9_CODE.isin(top25_icd9_codes))     #filter only top 25 icd9codes
+    df_admissions = sparkSQLContext.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv'), header=True, inferSchema="false")
+
+    df_diagnoses = df_diagnoses.join(df_admissions.select(['HADM_ID', 'ADMITTIME']), ['HADM_ID'])
+
+    df_subj_icd9codes_by_admittime = df_diagnoses.groupby('SUBJECT_ID').agg(collect_list(create_map(col("ADMITTIME"),col('ICD9_CODE'))).alias('ICD9_CODEs_occuring_for_hadm_after_admittimes'))
+
+    admissions_to_all_past_preasent_future_diags = df_admissions.select(['HADM_ID', 'ADMITTIME', 'SUBJECT_ID']).join(df_subj_icd9codes_by_admittime, ['SUBJECT_ID'])
+
+    def mapFnRowToKnownDiagnostics(row):
+        this_hadm_admittime = row.ADMITTIME
+        list_of_single_entry_dicts_admittime_to_icd9 = flatten(row.ICD9_CODEs_occuring_for_hadm_after_admittimes)
+        icd9_set = set([])
+        for single_entry_dict in list_of_single_entry_dicts_admittime_to_icd9:
+             for timestampstr in single_entry_dict.keys():
+                  if timestampstr <= this_hadm_admittime:              #'<' means all icd9's from prior admissions; '<=' means prior and current admission (which may include foward looking diagnoses from later in this admission - allowing data leakage)
+                       #icd9 = single_entry_dict[timestampstr]
+                       #index_of_icd9_in_list = top25_icd9_codes.index(icd9)
+                       icd9_set.add(single_entry_dict[timestampstr])
+        feat_array = [1 if x in icd9_set else 0 for x in top25_icd9_codes]
+        return (row.HADM_ID, feat_array)
+    hadmid_to_icd9_feats = admissions_to_all_past_preasent_future_diags.rdd.map(mapFnRowToKnownDiagnostics)
+    print(hadmid_to_icd9_feats.take(100))
+
+    return hadmid_to_icd9_feats
+
+
+def get_static_features(sparkSQLContext):
+    #TODO merge icd9 feats with other static feats, demographics ...??
+    return get_icd9_feats(sparkSQLContext)
+
+
+def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_features_rdd):
+    #TODO merge static features into sequences
+    #return hadm_sequences_with_static_and_temporal_feats
+    pass
 
 
 
@@ -476,8 +507,17 @@ if __name__ == '__main__':
 
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
     filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
-    
-    hadm_sequences = aggregate_temporal_features_hourly(filtered_chart_events_path)
+
+    rdd_hadm_individual_metrics_hadm_to_sequences = aggregate_temporal_features_hourly(filtered_chart_events_path)
+
+    rdd_static_features = get_static_features(spark)
+
+    rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_individual_metrics_hadm_to_sequences, rdd_static_features)
+
+    schema = StructType([StructField("HADMID", StringType(), True), StructField("SEQUENCES", ArrayType(ArrayType(FloatType()), containsNull=True), True)])
+    hadm_sequences = spark.createDataFrame(rdd_hadm_individual_metrics_hadm_to_sequences, schema=schema)
+
+
     hadm_ids, labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
 
     pickle.dump(labels, open(os.path.join(PATH_OUTPUT, "hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)	
