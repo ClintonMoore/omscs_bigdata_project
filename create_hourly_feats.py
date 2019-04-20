@@ -56,46 +56,74 @@ def get_event_key_ids():
     item_mappings['220045'] = 'HEART_RATE'  # HEART RATE
     
     #Blood Pressure [Systolic]
-    item_mappings['3313'] = 'SBP'  #BP Cuff [Systolic]
-    item_mappings['3315'] = 'SBP'  #BP Left Arm [Systolic]
-    item_mappings['3317'] = 'SBP'  #BP Left Leg [Systolic]
-    item_mappings['3319'] = 'SBP'  #BP PAL [Systolic]  
-    item_mappings['3321'] = 'SBP'  #BP Right Arm [Systolic] 
-    item_mappings['3323'] = 'SBP'  #BP Right Leg [Systolic]
-    item_mappings['3325'] = 'SBP'  #BP UAC [Systolic]
-    item_mappings['6'] = 'SBP'  #ABP [Systolic]
-    item_mappings['51'] = 'SBP'  #Arterial BP [Systolic]    
-    item_mappings['6701'] = 'SBP'  #Arterial BP #2 [Systolic]
-    item_mappings['225309'] = 'SBP'  #ART BP Systolic
-    item_mappings['220050'] = 'SBP'  #Arterial Blood Pressure systolic
-    item_mappings['442'] = 'SBP'  #Manual BP [Systolic]
-    item_mappings['224167'] = 'SBP'  #Manual Blood Pressure Systolic Left
-    item_mappings['227243'] = 'SBP'  #Manual Blood Pressure Systolic Right
-    item_mappings['442'] = 'SBP'  #Manual BP [Systolic]
-    item_mappings['455'] = 'SBP'  #NBP [Systolic]
-    item_mappings['480'] = 'SBP'  #Orthostat BP sitting [Systolic] 
-    item_mappings['482'] = 'SBP'  #OrthostatBP standing [Systolic]
-    item_mappings['484'] = 'SBP'  #Orthostatic BP lying [Systolic]  
-    item_mappings['220179'] = 'SBP'  #Non Invasive Blood Pressure systolic 
+    item_mappings['3313'] = 'SBP_Limb'  #BP Cuff [Systolic] (cc/min)
+    item_mappings['3315'] = 'SBP_Limb'  #BP Left Arm [Systolic] (cc/min)
+    item_mappings['3317'] = 'SBP_Limb'  #BP Left Leg [Systolic] (cc/min)
+    item_mappings['3321'] = 'SBP_Limb'  #BP Right Arm [Systolic] (cc/min)
+    item_mappings['3323'] = 'SBP_Limb'  #BP Right Leg [Systolic] (cc/min)
+    
+    item_mappings['3319'] = 'SBP_Line'  #BP PAL [Systolic]  (Breath)
+    item_mappings['3325'] = 'SBP_Line'  #BP UAC [Systolic] (Breath)
+    
+    item_mappings['6'] = 'SBP'  #ABP [Systolic] (mmHg)
+    item_mappings['51'] = 'SBP'  #Arterial BP [Systolic]   (mmHg)
+    item_mappings['6701'] = 'SBP'  #Arterial BP #2 [Systolic] (mmHg)
+    item_mappings['225309'] = 'SBP'  #ART BP Systolic (mmHg)
+    item_mappings['220050'] = 'SBP'  #Arterial Blood Pressure systolic (mmHg)
+    item_mappings['442'] = 'SBP'  #Manual BP [Systolic] (mmHg)
+    item_mappings['224167'] = 'SBP'  #Manual Blood Pressure Systolic Left (mmHg)
+    item_mappings['227243'] = 'SBP'  #Manual Blood Pressure Systolic Right (mmHg)
+    item_mappings['442'] = 'SBP'  #Manual BP [Systolic] (mmHg)
+    item_mappings['455'] = 'SBP'  #NBP [Systolic]  (mmHg)
+    item_mappings['480'] = 'SBP'  #Orthostat BP sitting [Systolic]  (mmHg)
+    item_mappings['482'] = 'SBP'  #OrthostatBP standing [Systolic]   (mmHg)
+    item_mappings['484'] = 'SBP'  #Orthostatic BP lying [Systolic]   (mmHg)
+    item_mappings['220179'] = 'SBP'  #Non Invasive Blood Pressure systolic (mmHg) 
         
     #Blood Pressure [Diastolic]
-    item_mappings['8502'] = 'DBP'  #BP Cuff [Diastolic]
-    item_mappings['8503'] = 'DBP'  #BP Left Arm [Diastolic]
-    item_mappings['8504'] = 'DBP'  #BP Left Leg [Diastolic]
-    item_mappings['8505'] = 'DBP'  #BP PAL [Diastolic]
-    item_mappings['8506'] = 'DBP'  #BP Right Arm [Diastolic]
-    item_mappings['8507'] = 'DBP'  #BP Right Leg [Diastolic]
-    item_mappings['8508'] = 'DBP'  #BP UAC [Diastolic]
-    item_mappings['8440'] = 'DBP'  #Manual BP [Diastolic]
-    item_mappings['227242'] = 'DBP'  #Manual Blood Pressure Diastolic Right
-    item_mappings['224643'] = 'DBP'  #Manual Blood Pressure Diastolic Left
-    item_mappings['8441'] = 'DBP'  #NBP [Diastolic]
-    item_mappings['8364'] = 'DBP'  #ABP [Diastolic]
-    item_mappings['8555'] = 'DBP'  #Arterial BP #2 [Diastolic]
-    item_mappings['8368'] = 'DBP'  #Arterial BP [Diastolic]  
-    item_mappings['225310'] = 'DBP'  #ART BP Diastolic      
-    item_mappings['220051'] = 'DBP'  #Arterial Blood Pressure diastolic 
-    item_mappings['220180'] = 'DBP'  #Non Invasive Blood Pressure diastolic  
+    item_mappings['8502'] = 'DBP_Limb'  #BP Cuff [Diastolic] (cc/min)
+    item_mappings['8503'] = 'DBP_Limb'  #BP Left Arm [Diastolic] (cmH20)
+    item_mappings['8504'] = 'DBP_Limb'  #BP Left Leg [Diastolic] (cc/min)
+    item_mappings['8506'] = 'DBP_Limb'  #BP Right Arm [Diastolic] (cc/min)
+    item_mappings['8507'] = 'DBP_Limb'  #BP Right Leg [Diastolic] (cc/min)
+    
+    item_mappings['8508'] = 'DBP_Line'  #BP UAC [Diastolic] (Breath)
+    item_mappings['8505'] = 'DBP_Line'  #BP PAL [Diastolic] (Breath)
+    
+    item_mappings['8440'] = 'DBP'  #Manual BP [Diastolic] (mmHg)
+    item_mappings['227242'] = 'DBP'  #Manual Blood Pressure Diastolic Right (mmHg)
+    item_mappings['224643'] = 'DBP'  #Manual Blood Pressure Diastolic Left (mmHg)
+    item_mappings['8441'] = 'DBP'  #NBP [Diastolic] (mmHg)
+    item_mappings['8364'] = 'DBP'  #ABP [Diastolic] (mmHg)
+    item_mappings['8555'] = 'DBP'  #Arterial BP #2 [Diastolic] (mmHg)
+    item_mappings['8368'] = 'DBP'  #Arterial BP [Diastolic]  (mmHg)
+    item_mappings['225310'] = 'DBP'  #ART BP Diastolic   (mmHg)
+    item_mappings['220051'] = 'DBP'  #Arterial Blood Pressure diastolic  (mmHg)
+    item_mappings['220180'] = 'DBP'  #Non Invasive Blood Pressure diastolic  (mmHg)
+    
+    #Blood Pressure [Mean]
+    
+    item_mappings['456'] = 'MBP'  #NBP Mean  (mmHg)
+    item_mappings['224322'] = 'MBP'  #IABP Mean (mmHg)
+    item_mappings['224'] = 'MBP'  #IABP Mean  (mmHg)
+    item_mappings['443'] = 'MBP'  #Manual BP Mean(calc)  (mmHg)
+    item_mappings['6702'] = 'MBP'  #Arterial BP Mean #2 (mmHg)
+    item_mappings['52'] = 'MBP'  #Arterial BP Mean  (mmHg)
+    item_mappings['225312'] = 'MBP'  #ART BP mean (mmHg)
+    item_mappings['220052'] = 'MBP'  #Arterial Blood Pressure mean   (mmHg)    
+    item_mappings['220181'] = 'MBP'  #Non Invasive Blood Pressure mean (mmHg)
+    
+    item_mappings['3324'] = 'MBP_Line'  #BP UAC [Mean]    (Breath)
+    item_mappings['3318'] = 'MBP_Line'  #BP PAL [Mean] (Breath)
+    
+    item_mappings['7622'] = 'MBP_Limb'  #BP Rt. Leg Mean (None)
+    item_mappings['7620'] = 'MBP_Limb'  #BP Rt. Arm Mean (None)
+    item_mappings['7618'] = 'MBP_Limb'  #BP Lt. leg Mean (None)
+    item_mappings['3322'] = 'MBP_Limb'  #BP Right Leg [Mean] (Breath)
+    item_mappings['3320'] = 'MBP_Limb'  #BP Right Arm [Mean] (Breath)
+    item_mappings['3316'] = 'MBP_Limb'  #BP Left Leg [Mean] (Breath)
+    item_mappings['3314'] = 'MBP_Limb'  #BP Left Arm [Mean] (Breath)    
+    item_mappings['3312'] = 'MBP_Limb'  #BP Cuff [Mean]  (cc/min)  
     
     #Temperature
     item_mappings['676'] = 'TEMPC' #Temperature C
