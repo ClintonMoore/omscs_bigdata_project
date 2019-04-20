@@ -261,7 +261,6 @@ def get_event_key_ids():
 
 
 
-
 def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_path, filtered_chrtevents_outfile_path):
     #TAKES ONLY THE RELEVANT ITEM ROWS FROM THE CHARTEVENTS.CSV file
     item_mappings = get_event_key_ids()
@@ -357,10 +356,24 @@ def standardize_features (df_filtered_chartevents):
     return standardized_df.drop("Quantile5","Quantile95")
 
 
+#Convert all temperature values in dataframe to Celsius
+def temp_conversion (df_filtered_chartevents):
+
+    def fahrenheit_celsius(itemid, value):
+        if (itemid=='678') or (itemid=='223761'):
+            return float((value-32) * (5 /9)) 
+        else:
+            return float(value)
+        
+    udf_conversion  = udf(fahrenheit_celsius, DoubleType())
+    df = df_filtered_chartevents.withColumn("VALUENUM", udf_conversion("ITEMID","VALUENUM"))
+    return df
+
+
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
     num_hours = 48
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
-
+    df_filtered_chartevents = temp_conversion (df_filtered_chartevents)
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
     df_filtered_chartevents = df_filtered_chartevents.drop(df_filtered_chartevents.VALUENUM).withColumnRenamed('VALUENUM_INT', 'VALUENUM')
     df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"])
