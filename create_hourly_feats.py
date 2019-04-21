@@ -301,6 +301,18 @@ def get_event_key_ids():
     item_mappings['227465'] = 'PT' #Prothrombin time
     item_mappings['220560'] = 'PT' #ZProthrombin time
     
+    #HEMOGLOBIN
+    item_mappings['814'] = 'Hb' #Hemoglobin
+    item_mappings['220228'] = 'Hb' #Hemoglobin (g/dl)
+    item_mappings['1165'] = 'Hb' #Hgb 
+    item_mappings['3759'] = 'Hb' #HGB (10.8-15.8)
+    
+    #HEMATOCRIT
+    item_mappings['813'] = 'Ht' #Hematocrit (%)
+    item_mappings['3761'] = 'Ht' #Hematocrit (35-51)
+    item_mappings['226540'] = 'Ht' #Hematocrit (whole blood - calc) (%)
+    item_mappings['220545'] = 'Ht' #Hematocrit (serum) (%)
+    
     return item_mappings 
 
 
