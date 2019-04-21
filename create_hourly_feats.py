@@ -484,13 +484,11 @@ def get_icd9_feats(sparkSQLContext):
         for single_entry_dict in list_of_single_entry_dicts_admittime_to_icd9:
              for timestampstr in single_entry_dict.keys():
                   if timestampstr <= this_hadm_admittime:              #'<' means all icd9's from prior admissions; '<=' means prior and current admission (which may include foward looking diagnoses from later in this admission - allowing data leakage)
-                       #icd9 = single_entry_dict[timestampstr]
-                       #index_of_icd9_in_list = top25_icd9_codes.index(icd9)
                        icd9_set.add(single_entry_dict[timestampstr])
-        feat_array = [1 if x in icd9_set else 0 for x in top25_icd9_codes]
+        feat_array = [1.0 if x in icd9_set else 0.0 for x in top25_icd9_codes]
         return (row.HADM_ID, feat_array)
     hadmid_to_icd9_feats = admissions_to_all_past_preasent_future_diags.rdd.map(mapFnRowToKnownDiagnostics)
-    print(hadmid_to_icd9_feats.take(100))
+    #print(hadmid_to_icd9_feats.take(100))
 
     return hadmid_to_icd9_feats
 
@@ -502,8 +500,21 @@ def get_static_features(sparkSQLContext):
 
 def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_features_rdd):
     #TODO merge static features into sequences
-    #return hadm_sequences_with_static_and_temporal_feats
-    pass
+
+    hadm_temporal_and_static_rdd = temporal_features_rdd.join(static_features_rdd)
+
+
+    def mapFn(hadm_temporal_seqs_static_feats):
+        hadm = hadm_temporal_seqs_static_feats[0]
+        seqs = hadm_temporal_seqs_static_feats[1][0]
+        static_feats = hadm_temporal_seqs_static_feats[1][1]
+        seqs_with_static_feats = [x + static_feats for x in seqs]
+        return (hadm, seqs_with_static_feats)
+
+    hadm_sequences_of_temporal_and_static_feats_rdd = hadm_temporal_and_static_rdd.map(mapFn)
+    print(hadm_sequences_of_temporal_and_static_feats_rdd.take(5))
+
+    return hadm_sequences_of_temporal_and_static_feats_rdd
 
 
 
@@ -526,7 +537,7 @@ if __name__ == '__main__':
     rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_individual_metrics_hadm_to_sequences, rdd_static_features)
 
     schema = StructType([StructField("HADMID", StringType(), True), StructField("SEQUENCES", ArrayType(ArrayType(FloatType()), containsNull=True), True)])
-    hadm_sequences = spark.createDataFrame(rdd_hadm_individual_metrics_hadm_to_sequences, schema=schema)
+    hadm_sequences = spark.createDataFrame(rdd_hadmid_to_sequences_temporal_and_static_feats, schema=schema)
 
 
     hadm_ids, labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
