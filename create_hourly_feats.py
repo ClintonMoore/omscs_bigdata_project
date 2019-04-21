@@ -261,8 +261,14 @@ def get_event_key_ids():
     item_mappings['1535'] = 'K' #Potassium
     item_mappings['41956'] = 'K' #Potassium
     item_mappings['44711'] = 'K' #potassium 
-    item_mappings['226771'] = 'K' #PotassiumApacheIIScore
+    #item_mappings['226771'] = 'K' #PotassiumApacheIIScore
     item_mappings['226772'] = 'K' #PotassiumApacheIIValue
+
+    item_mappings['829'] = 'K' #Potassium (3.5-5.3)
+    item_mappings['3792'] = 'K' #Potassium (3.5-5.3)
+    item_mappings['227464'] = 'K' #Potassium (whole blood) 
+    item_mappings['226535'] = 'K' #ZPotassium (whole blood) 
+    item_mappings['220640'] = 'K' #ZPotassium (serum)
     
     return item_mappings 
 
