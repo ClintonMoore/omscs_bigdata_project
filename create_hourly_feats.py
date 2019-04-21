@@ -207,6 +207,12 @@ def get_event_key_ids():
     item_mappings['226752'] = 'Creatinine' #CreatinineApacheIIValue
     #item_mappings['226751'] = 'Creatinine' #CreatinineApacheIIScore
 
+        
+    #pH 
+    item_mappings['6003'] = 'pH' #ph level
+    item_mappings['1673'] = 'pH'  #PH
+    #item_mappings['220734'] = 'pH'  #PH (dipstick)
+    #item_mappings['223830'] = 'pH'  #PH (Arterial) 
     
     #carbon dioxide 
     item_mappings['3784'] = 'PCO2'
