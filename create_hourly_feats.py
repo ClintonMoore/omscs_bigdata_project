@@ -427,11 +427,12 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
         df_single_feature = df_single_feature.drop(df_single_feature.ITEMNAME).withColumnRenamed('VALUE', itemname)
         cartesian_hadm_hours = cartesian_hadm_hours.join(df_single_feature, ['HADM_ID', 'HOUR'], how='left')
 
-    alt_cartesian_hadm_hours = cartesian_hadm_hours.na.fill(0.0)
-    stats = alt_cartesian_hadm_hours.agg(*(
-        avg(c).alias(c) for c in alt_cartesian_hadm_hours.columns if c not in ["HADM_ID", "HOUR"]
+    stats = cartesian_hadm_hours.agg(*(
+        avg(c).alias(c) for c in cartesian_hadm_hours.columns if c not in ["HADM_ID", "HOUR"]
     ))
-        
+
+    stats = stats.na.fill(0.0)
+    
     #cartesian_hadm_hours.show(150)
     df_hadm_hourly_feature_arrays = cartesian_hadm_hours.na.fill(stats.first().asDict()).select('HADM_ID', 'HOUR', F.struct(itemnames).alias('all_temporal_feats'))
     #df_hadm_hourly_feature_arrays.show(150)
