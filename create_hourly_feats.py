@@ -499,8 +499,6 @@ def get_static_features(sparkSQLContext):
 
 
 def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_features_rdd):
-    #TODO merge static features into sequences
-
     hadm_temporal_and_static_rdd = temporal_features_rdd.join(static_features_rdd)
 
 
