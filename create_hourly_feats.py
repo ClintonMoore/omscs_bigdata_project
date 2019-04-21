@@ -512,7 +512,7 @@ def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_f
         return (hadm, seqs_with_static_feats)
 
     hadm_sequences_of_temporal_and_static_feats_rdd = hadm_temporal_and_static_rdd.map(mapFn)
-    print(hadm_sequences_of_temporal_and_static_feats_rdd.take(5))
+    #print(hadm_sequences_of_temporal_and_static_feats_rdd.take(5))
 
     return hadm_sequences_of_temporal_and_static_feats_rdd
 
