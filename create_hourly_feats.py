@@ -313,6 +313,15 @@ def get_event_key_ids():
     item_mappings['226540'] = 'Ht' #Hematocrit (whole blood - calc) (%)
     item_mappings['220545'] = 'Ht' #Hematocrit (serum) (%)
     
+    #Chloride    
+    item_mappings['228385'] = 'Cl' #Chloride (serum) (soft)
+    item_mappings['228386'] = 'Cl' #Chloride (whole blood) 
+    item_mappings['220602'] = 'Cl' #Chloride (serum)
+    item_mappings['226536'] = 'Cl' #Chloride (whole blood)
+    item_mappings['1523'] = 'Cl' #Chloride
+    item_mappings['3747'] = 'Cl' #Chloride (100-112)
+    item_mappings['788'] = 'Cl' #Chloride (100-112)
+    
     return item_mappings 
 
 
