@@ -321,6 +321,11 @@ def get_event_key_ids():
     item_mappings['1523'] = 'Cl' #Chloride
     item_mappings['3747'] = 'Cl' #Chloride (100-112)
     item_mappings['788'] = 'Cl' #Chloride (100-112)
+            
+    #BILIRUBIN
+    item_mappings['4948'] = 'Bilirubin' #Bilirubin
+    item_mappings['225651'] = 'Bilirubin' #Direct Bilirubin (mg/dL)
+    item_mappings['225690'] = 'Bilirubin' #Total Bilirubin (mg/dL)
     
     return item_mappings 
 
