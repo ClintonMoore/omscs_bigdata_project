@@ -270,6 +270,37 @@ def get_event_key_ids():
     item_mappings['226535'] = 'K' #ZPotassium (whole blood) 
     item_mappings['220640'] = 'K' #ZPotassium (serum)
     
+    #Anion Gap
+    item_mappings['3732'] = 'AG' #Anion Gap (8-20) (mEq/L)
+    item_mappings['227073'] = 'AG' #Anion gap  (mEq/L)
+    
+    #BANDS
+    item_mappings['3734'] = 'BANDS' #BANDS 
+    item_mappings['795'] = 'BANDS' #Differential-Bands
+    item_mappings['3738'] = 'BANDS' #Bands
+    item_mappings['225638'] = 'BANDS' #Differential-Bands
+    
+    #White Blood Cell (WBC)
+    item_mappings['3834'] = 'WBC' #WhiteBloodC 4.0-11.0
+    item_mappings['1127'] = 'WBC' #WBC (4-11,000)
+    item_mappings['861'] = 'WBC' #WBC (4-11,000)
+    item_mappings['4200'] = 'WBC' #WBC 4.0-11.0
+    item_mappings['1542'] ='WBC' #WBC
+    item_mappings['220546'] = 'WBC' #WBC
+    
+    #Partial Thromboplastin Time (PTT) 
+    item_mappings['825'] = 'PTT' #PTT(22-35) 
+    item_mappings['3796'] = 'PTT' #Ptt
+    item_mappings['1533'] = 'PTT' #PTT
+    item_mappings['227466'] = 'PTT' #PTT
+    item_mappings['220562'] = 'PTT' #ZPTT
+    
+    #Prothrombin Time (PT) 
+    item_mappings['1286'] = 'PT' #PT
+    item_mappings['824'] = 'PT' #PT(11-13.5)
+    item_mappings['227465'] = 'PT' #Prothrombin time
+    item_mappings['220560'] = 'PT' #ZProthrombin time
+    
     return item_mappings 
 
 
