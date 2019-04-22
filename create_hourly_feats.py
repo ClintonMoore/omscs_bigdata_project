@@ -191,6 +191,11 @@ def get_event_key_ids():
     item_mappings['30006'] = 'Platelets'  #Platelets
     item_mappings['30105'] = 'Platelets'  #OR Platelets 
     
+    #Lactate
+    item_mappings['818'] = 'Lactate' #Lactic Acid(0.5-2.0)
+    item_mappings['1531'] = 'Lactate' #Lactic Acid
+    item_mappings['225668'] = 'Lactate' #Lactic Acid
+    
     #Calcium
     item_mappings['44441'] = 'Ca'  #calcium
     item_mappings['44855'] = 'Ca'  #Calcium
@@ -503,6 +508,8 @@ def values_filter (df_filtered_chartevents):
         elif (itemname == 'SPO2') and value <= 0 and value >100:
             return None
         elif (itemname == 'Glucose') and value <= 0 :
+            return None
+        elif (itemname == 'Lactate') and value > 50 :
             return None
         else:
             return value
