@@ -445,12 +445,65 @@ def temp_conversion (df_filtered_chartevents):
     df = df_filtered_chartevents.withColumn("VALUENUM", udf_conversion("ITEMID","VALUENUM"))
     return df
 
+#Filter feature values 
+def values_filter (df_filtered_chartevents):
+
+    def value_conditions(itemname, itemid, value):
+   
+        if (itemname == 'Temp') and (itemid in ['678','223761']) and value > 70 and value < 120:
+            return (float(value)-32) * (5 /9)
+        elif (itemname == 'Temp') and (itemid in ['678','223761']) and value <= 70 and value >= 120:
+            return None 
+        elif (itemname == 'Temp') and (itemid in ['676','223762']) and value < 10 and value > 50: 
+            return None
+        elif (itemname == 'Albumin') and (value >10) :
+            return None
+        elif (itemname == 'AG') and (value >10000) :
+            return None
+        elif (itemname == 'BANDS') and value >100 and value <0 :
+            return None
+        elif (itemname == 'Bicarbonate') and value >10000:
+            return None        
+        elif (itemname == 'Cl') and value >10000:
+            return None
+        elif (itemname == 'Creatinine') and value >150:
+            return None
+        elif (itemname == 'Glucose') and value >10000:
+            return None
+        elif (itemname == 'Ht') and value >100:
+            return None
+        elif (itemname == 'Hg') and value >50:
+            return None
+        elif (itemname == 'Platelets') and value >10000:
+            return None
+        elif (itemname == 'K') and value >30:
+            return None        
+        elif (itemname == 'PTT') and value >150:
+            return None 
+        elif (itemname == 'PT') and value >150:
+            return None 
+        elif (itemname == 'INR') and value >50:
+            return None 
+        elif (itemname == 'Na') and value >200:
+            return None 
+        elif (itemname == 'BUN') and value >300:
+            return None 
+        elif (itemname == 'WBC') and value >1000:
+            return None
+        else:
+            return value
+        
+    udf_conversion  = udf(value_conditions, DoubleType())
+    df = df_filtered_chartevents.withColumn("VALUENUM", udf_conversion("ITEMNAME", "ITEMID","VALUENUM"))
+    df = df.withColumn("VALUENUM", udf_conversion("ITEMNAME", "ITEMID","VALUENUM"))
+    
+    return df
 
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
     num_hours = 48
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
     df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"])
-    df_filtered_chartevents = temp_conversion (df_filtered_chartevents)
+    df_filtered_chartevents = values_filter (df_filtered_chartevents)
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
     df_filtered_chartevents = df_filtered_chartevents.drop(df_filtered_chartevents.VALUENUM).withColumnRenamed('VALUENUM_INT', 'VALUENUM')
     df_standardized_chartevents = standardize_features (df_filtered_chartevents)
