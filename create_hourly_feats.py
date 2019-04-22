@@ -523,7 +523,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     num_hours = 48
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema=False)
     df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"]).withColumn("VALUENUM", df_filtered_chartevents["VALUENUM"].cast(DoubleType()))
-    df_filtered_chartevents = values_filter (df_filtered_chartevents).na.drop(subset=["VALUENUM"])
+    df_filtered_chartevents = values_filter (df_filtered_chartevents)
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
     df_filtered_chartevents = df_filtered_chartevents.drop(df_filtered_chartevents.VALUENUM).withColumnRenamed('VALUENUM_INT', 'VALUENUM')
     df_standardized_chartevents = standardize_features (df_filtered_chartevents)
