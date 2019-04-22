@@ -144,10 +144,10 @@ def get_event_key_ids():
     item_mappings['224690'] = 'RR' #Respiratory Rate (Total) 
      
     #Saturation Pulseoxymetry
-    item_mappings['646'] = 'SP02'  #SpO2 (%)
-    item_mappings['220277'] = 'SP02'  # saturation pulseoxymetry SpO2  (%)
-    item_mappings['223769'] = 'SP02'  # O2 Saturation Pulseoxymetry Alarm - High  (%)
-    item_mappings['223770'] = 'SP02'  # O2 Saturation Pulseoxymetry Alarm - Low  (%)
+    item_mappings['646'] = 'SPO2'  #SpO2 (%)
+    item_mappings['220277'] = 'SPO2'  # saturation pulseoxymetry SpO2  (%)
+    item_mappings['223769'] = 'SPO2'  # O2 Saturation Pulseoxymetry Alarm - High  (%)
+    item_mappings['223770'] = 'SPO2'  # O2 Saturation Pulseoxymetry Alarm - Low  (%)
     
     #Albumin
     item_mappings['3066'] = 'Albumin'  #albumin
@@ -489,6 +489,20 @@ def values_filter (df_filtered_chartevents):
         elif (itemname == 'BUN') and value >300:
             return None 
         elif (itemname == 'WBC') and value >1000:
+            return None
+        elif (itemname == 'HEART_RATE') and value <=0 and value >= 300:
+            return None
+        elif (itemname == 'SBP') and value <=0 and value >= 400:
+            return None
+        elif (itemname == 'DBP') and value <=0 and value >= 300:
+            return None
+        elif (itemname == 'MBP') and value <=0 and value >= 300:
+            return None
+        elif (itemname == 'RR') and value >= 70:
+            return None
+        elif (itemname == 'SPO2') and value <= 0 and value >100:
+            return None
+        elif (itemname == 'Glucose') and value <= 0 :
             return None
         else:
             return value
