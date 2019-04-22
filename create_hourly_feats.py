@@ -455,11 +455,11 @@ def values_filter (df_filtered_chartevents):
 
     def value_conditions(itemname, itemid, value):
    
-        if (itemname == 'Temp') and (itemid in ['678','223761']) and value > 70 and value < 120:
+        if (itemname == 'TEMP') and (itemid in [678,223761]) and value > 70 and value < 120:
             return (float(value)-32) * (5 /9)
-        elif (itemname == 'Temp') and (itemid in ['678','223761']) and value <= 70 and value >= 120:
+        elif (itemname == 'TEMP') and (itemid in [678,223761]) and value <= 70 and value >= 120:
             return None 
-        elif (itemname == 'Temp') and (itemid in ['676','223762']) and value < 10 and value > 50: 
+        elif (itemname == 'TEMP') and (itemid in [676,223762]) and value < 10 and value > 50: 
             return None
         elif (itemname == 'Albumin') and (value >10) :
             return None
@@ -516,15 +516,14 @@ def values_filter (df_filtered_chartevents):
         
     udf_conversion  = udf(value_conditions, DoubleType())
     df = df_filtered_chartevents.withColumn("VALUENUM", udf_conversion("ITEMNAME", "ITEMID","VALUENUM"))
-    df = df.withColumn("VALUENUM", udf_conversion("ITEMNAME", "ITEMID","VALUENUM"))
-    
-    return df
+    return df.na.drop(subset=["VALUENUM"])
+
 
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
     num_hours = 48
-    df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
-    df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"])
-    df_filtered_chartevents = values_filter (df_filtered_chartevents)
+    df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema=False)
+    df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"]).withColumn("VALUENUM", df_filtered_chartevents["VALUENUM"].cast(DoubleType()))
+    df_filtered_chartevents = values_filter (df_filtered_chartevents).na.drop(subset=["VALUENUM"])
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
     df_filtered_chartevents = df_filtered_chartevents.drop(df_filtered_chartevents.VALUENUM).withColumnRenamed('VALUENUM_INT', 'VALUENUM')
     df_standardized_chartevents = standardize_features (df_filtered_chartevents)
