@@ -362,7 +362,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
             for line in orig_file:
                 temp_file.write(line)
                 i = i + 1
-                if i > 5000:
+                if i > 25000:
                     break
         temp_file.close()
 
@@ -522,7 +522,7 @@ def values_filter (df_filtered_chartevents):
 
 def aggregate_temporal_features_hourly(filtered_chartevents_path):
     num_hours = 48
-    df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="false")
+    df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema="true")
     df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"])
     df_filtered_chartevents = values_filter (df_filtered_chartevents)
     df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
@@ -654,9 +654,21 @@ def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_f
 
 
 
+def create_and_write_dataset(spark, sequences, label_name):
+    schema = StructType([StructField("HADMID", StringType(), True), StructField("SEQUENCES", ArrayType(ArrayType(FloatType()), containsNull=True), True)])
+    hadm_sequences = spark.createDataFrame(sequences, schema=schema)
+
+
+    hadm_ids, labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
+
+    pickle.dump(labels, open(os.path.join(PATH_OUTPUT, label_name + ".hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)
+    pickle.dump(seqs, open(os.path.join(PATH_OUTPUT, label_name + ".hadm.seqs"), 'wb'), pickle.HIGHEST_PROTOCOL)
+    pickle.dump(hadm_ids, open(os.path.join(PATH_OUTPUT, label_name + "hadm.ids"), 'wb'), pickle.HIGHEST_PROTOCOL)
+
+
 if __name__ == '__main__':
 
-    conf = SparkConf().setMaster("local[4]").setAppName("My App")#\
+    conf = SparkConf().setMaster("local[7]").setAppName("My App")#\
         #.set("spark.driver.memory", "20g") \
         #.set("spark.executor.memory", "3g")
     sc = SparkContext(conf=conf)
@@ -664,23 +676,14 @@ if __name__ == '__main__':
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
 
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
-    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
+    #filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
 
-    rdd_hadm_individual_metrics_hadm_to_sequences = aggregate_temporal_features_hourly(filtered_chart_events_path)
+    rdd_hadm_temporal_sequences_only = aggregate_temporal_features_hourly(filtered_chart_events_path)
+
+    create_and_write_dataset(spark, rdd_hadm_temporal_sequences_only, "temporal_only")
 
     rdd_static_features = get_static_features(spark)
 
-    rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_individual_metrics_hadm_to_sequences, rdd_static_features)
+    rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_temporal_sequences_only, rdd_static_features)
 
-    schema = StructType([StructField("HADMID", StringType(), True), StructField("SEQUENCES", ArrayType(ArrayType(FloatType()), containsNull=True), True)])
-    hadm_sequences = spark.createDataFrame(rdd_hadmid_to_sequences_temporal_and_static_feats, schema=schema)
-
-
-    hadm_ids, labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
-
-    pickle.dump(labels, open(os.path.join(PATH_OUTPUT, "hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)	
-    pickle.dump(seqs, open(os.path.join(PATH_OUTPUT, "hadm.seqs"), 'wb'), pickle.HIGHEST_PROTOCOL)
-    pickle.dump(hadm_ids, open(os.path.join(PATH_OUTPUT, "hadm.ids"), 'wb'), pickle.HIGHEST_PROTOCOL)
-
-
-    #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
+    create_and_write_dataset(spark, rdd_hadmid_to_sequences_temporal_and_static_feats,"temporal_and_static")
