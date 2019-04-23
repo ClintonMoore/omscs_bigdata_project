@@ -653,7 +653,7 @@ def get_static_features(spark):
 
     df_merge = df_merge.fillna({'MARITAL_STATUS': 'UNKNOWN_MARITAL'})
     
-    return get_icd9_feats(sparkSQLContext)
+    return get_icd9_feats(spark)
 
 
 def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_features_rdd):
