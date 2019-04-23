@@ -8,6 +8,7 @@ from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, DataFrame, Row, Window, functions as F
 from pyspark.sql.types import IntegerType, StringType, DoubleType, StructType, StructField, ArrayType, FloatType
 from pyspark.sql.functions import array, udf, avg, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType, explode, collect_list, create_map
+from pyspark.ml.feature import QuantileDiscretizer
 from functools import reduce
 from local_configuration import *
 import csv
