@@ -373,10 +373,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     los_path =  os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, "ICUSTAYS.csv")
     df_los = spark.read.csv(los_path, header=True, inferSchema="false")
     
-    df_los = df_los.filter(col('LOS') >=1)
-    df_los =    reduce(DataFrame.drop,  ["ROW_ID","SUBJECT_ID","ICUSTAY_ID","DBSOURCE","FIRST_CAREUNIT","LAST_CAREUNIT","FIRST_WARDID","LAST_WARDID","INTIME","OUTTIME"], df_los)
-        
-   
+    df_los = df_los.filter(col('LOS') >=1).select(['HADM_ID'])
 
     df_chartevents = spark.read.csv(chrtevents_file_path_to_use, header=True, inferSchema="false")
 
@@ -385,9 +382,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
 
     #join filtered_chartevents with ADMISSIONS.csv on HADMID --- only keep HADMID AND ADMITTIME COLUMNS FROM ADMISSIONS
-    df_admissions = spark.read.csv(admissions_csv_file_path, header=True, inferSchema="false")
-
-
+    df_admissions = spark.read.csv(admissions_csv_file_path, header=True, inferSchema="false").select('HADM_ID', 'ADMITTIME')
 
     #add column that contains the hour the observation occurred after admission  (0 - X)
     filtered_chartevents = filtered_chartevents.join(df_admissions, ['HADM_ID'])
@@ -399,10 +394,10 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     #filter out all observations where X > 48  (occurred after initial 48 hours of admission)
     filtered_chartevents = filtered_chartevents.filter(col('HOUR_OF_OBS_AFTER_HADM') <= 48)
     
-    filtered_chartevents = filtered_chartevents.join(df_los, ['HADM_ID'])
+    filtered_chartevents = df_los.join(filtered_chartevents, ['HADM_ID'])
 
     #REMOVE columns that are not needed (keep CHARTEVENTS cols, ITEMNAME, HOUR_OF_OBS_AFTER_HADM
-    filtered_chartevents = reduce(DataFrame.drop, ["ADMITTIME", "DISCHTIME", "DEATHTIME", "ADMISSION_TYPE", "ADMISSION_LOCATION", "DISCHARGE_LOCATION", "INSURANCE", "LANGUAGE", "RELIGION", "MARITAL_STATUS", "ETHNICITY", "EDREGTIME", "EDOUTTIME", "DIAGNOSIS", "HOSPITAL_EXPIRE_FLAG", "HAS_CHARTEVENTS_DATA"], filtered_chartevents)
+    filtered_chartevents = reduce(DataFrame.drop, ['ADMITTIME'], filtered_chartevents)
 
     with open(filtered_chrtevents_outfile_path, "w+") as f:
         w = csv.DictWriter(f, fieldnames=filtered_chartevents.schema.names)
@@ -696,15 +691,15 @@ def create_and_write_dataset(spark, sequences, label_name):
 
 if __name__ == '__main__':
 
-    conf = SparkConf().setMaster("local[4]").setAppName("My App") #\
+    conf = SparkConf().setMaster("local[8]").setAppName("My App") #\
         #.set("spark.driver.memory", "15g") \
-        #.set("spark.executor.memory", "3g")
+        #.set("spark.executor.memory", "4g")
     sc = SparkContext(conf=conf)
     spark = SQLContext(sc)
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
 
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
-    #filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
+    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
 
     rdd_hadm_temporal_sequences_only = aggregate_temporal_features_hourly(filtered_chart_events_path)
 
@@ -714,8 +709,8 @@ if __name__ == '__main__':
 
     rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_temporal_sequences_only, rdd_icd9_features)
 
-    #rdd_static_features = get_static_features(spark)
+    rdd_static_features = get_static_features(spark)
 
-    #rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadmid_to_sequences_temporal_and_static_feats, rdd_static_features)
+    rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadmid_to_sequences_temporal_and_static_feats, rdd_static_features)
 
     create_and_write_dataset(spark, rdd_hadmid_to_sequences_temporal_and_static_feats,"temporal_and_static")
