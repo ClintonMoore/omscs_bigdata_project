@@ -584,7 +584,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
 
 
 
-def get_icd9_feats(sparkSQLContext):
+def get_icd9_features(sparkSQLContext):
 
     top25_icd9_codes = ['4019', '4280', '42731', '41401', '5849', '25000', '2724', '51881', '5990', '53081', '2720', '2859', '486', '2449', '2851', '2762', '496', '99592', '5070', '389', '5859', '40390', '311', '2875', '3051'] #from supp doc here: https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/jamiaopen/1/1/10.1093_jamiaopen_ooy011/9/ooy011_supplemental_materials.docx?Expires=1555865667&Signature=qKYo3JhhWHA6AxWaf007UiK9Yp8thafIVKYoO6lVETi3nW4h7KzoD4XumvO8tU7aBTl6PM0zIOTvzfPFvJqqVkCzpj-KvwwfKH5lz5lpkPlzFkEhl7hd-VDGW-DxC1TiYAnGFom1u2U6pndj9JcBJLMWTwQ4wSxPEg3ZoO3Wpa9HLz71xyy1Q1sjCfx99onRsmMmF2Rz2dcol6tU-YyqQoGxJ5QWpuqYaYH0BuEYhfRXedXhUxAV0TsR3mjb9xeMjXs6OlJoZY3pO6gcSRj98Nb8u5N9SrbsuRTeEtW31gwE1ENZWvqOTguL6fpicWu9zrmeFczCpt5lUF3br7qf5A__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
     idxs_top_25_codes = range(len(top25_icd9_codes))
@@ -637,12 +637,29 @@ def get_static_features(spark):
     df_merge = df_merge.withColumn('AGE', udf_age('QAGE'))
     df_merge = reduce(DataFrame.drop, ['SUBJECT_ID', 'ROW_ID', 'ADMITTIME', 'DISCHTIME', 'DEATHTIME', 'ADMISSION_TYPE',
                                        'ADMISSION_LOCATION', 'LANGUAGE', 'RELIGION', 'EDREGTIME', 'EDOUTTIME',
-                                       'DIAGNOSIS', 'HOSPITAL_EXPIRE_FLAG', 'HAS_CHATEVENTS_DATA', 'GENDER', 'DOB',
+                                       'DIAGNOSIS', 'HOSPITAL_EXPIRE_FLAG', 'HAS_CHARTEVENTS_DATA', 'GENDER', 'DOB',
                                        'DOD', 'DOD_HOSP', 'DOD_SSN', 'EXPIRE_FLAG', 'AGE_ADMISSION', 'QAGE'], df_merge)
 
     df_merge = df_merge.fillna({'MARITAL_STATUS': 'UNKNOWN_MARITAL'})
+    
+    categories = list(set(flatten([list(df_merge.select(c).distinct().collect()) for c in df_merge.columns if c not in ['HADM_ID'] ]) ))
 
-    return get_icd9_feats(spark)
+    categories_dict = {}
+    for i in range(len(categories)):
+      categories_dict[categories[i]] = i
+
+    def mapFnLabels(row):
+      one = categories_dict[row.AGE]
+      two = categories_dict[row.ETHNICITY]
+      three = categories_dict[row.DISCHARGE_LOCATION]
+      four = categories_dict[row.MARITAL_STATUS]
+      five = categories_dict[row.INSURANCE]
+      feat_array = [one, two, three, four, five]
+      return (row.HADM_ID, feat_array)
+
+    hadmid_to_static_feats = df_merge.rdd.map(mapFnLabels)
+
+    return hadmid_to_static_feats
 
 
 def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_features_rdd):
@@ -689,9 +706,13 @@ if __name__ == '__main__':
     rdd_hadm_temporal_sequences_only = aggregate_temporal_features_hourly(filtered_chart_events_path)
 
     create_and_write_dataset(spark, rdd_hadm_temporal_sequences_only, "temporal_only")
+    
+    rdd_icd9_features = get_icd9_features(spark)
 
-    rdd_static_features = get_static_features(spark)
+    rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_temporal_sequences_only, rdd_icd9_features)
 
-    rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_temporal_sequences_only, rdd_static_features)
+    #rdd_static_features = get_static_features(spark)
+
+    #rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadmid_to_sequences_temporal_and_static_feats, rdd_static_features)
 
     create_and_write_dataset(spark, rdd_hadmid_to_sequences_temporal_and_static_feats,"temporal_and_static")
