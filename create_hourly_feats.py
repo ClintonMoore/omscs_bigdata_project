@@ -551,21 +551,24 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     df_hadm_hourly_averages_filled  = rdd_hadm_individual_metrics.flatMap(lambda x: [Row(**{'HADM_ID': x.HADM_ID, 'ITEMNAME': x.ITEMNAME, 'HOUR':y, 'VALUE':x.hourly_averages[y]}) for y in range(len(x.hourly_averages))]).toDF()
     #df_hadm_hourly_averages_filled.show(100)
 
-    itemnames = list(set(get_event_key_ids().values()))
+    #itemnames = list(set(get_event_key_ids().values()))
+
+    items = dict(df_hadm_hourly_averages_filled.groupby("ITEMNAME").agg(avg(col("VALUE")).alias("avg")).collect())
     all_hours = range(num_hours)
 
     df_hadm_hourly_averages_filled_agged = df_hadm_hourly_averages_filled.groupBy("HADM_ID").agg(collect_list(create_map(concat(col('ITEMNAME'), lit('_'), col("HOUR")),col('VALUE'))).alias('item_hour_toValues'))
 
-
+    df_hadm_hourly_averages_filled_agged.show(10)
     def mapFn(row):
-        #print(row)
+        print(row)
         list_of_single_entry_dicts_for_each_hr = flatten(row.item_hour_toValues)
         dict_hour_to_feature_row = {k: v for d in list_of_single_entry_dicts_for_each_hr for k, v in d.items()}
-        sequences = [[None] * len(itemnames)] * num_hours
-        for i in range(len(itemnames)):
-            itemname = itemnames[i]
+        sequences = [[None] * len(items)] * num_hours
+        i = 0 
+        for item in items.keys():
+            itemname = item
 
-            value = 0.0  # TODO change to average value for item
+            value = items.get(item)  
 
             for hour in all_hours:
                 if itemname + "_0" in dict_hour_to_feature_row:
@@ -573,12 +576,11 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
                     value = dict_hour_to_feature_row[key]
 
                 sequences[hour][i] = value
+            i+=1
 
         return (row.HADM_ID, sequences)
 
     rdd_hadm_individual_metrics_hadm_to_sequences = df_hadm_hourly_averages_filled_agged.rdd.map(mapFn)
-
-
 
     return rdd_hadm_individual_metrics_hadm_to_sequences
 
