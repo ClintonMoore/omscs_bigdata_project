@@ -8,6 +8,7 @@ from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, DataFrame, Row, Window, functions as F
 from pyspark.sql.types import IntegerType, StringType, DoubleType, StructType, StructField, ArrayType, FloatType
 from pyspark.sql.functions import array, udf, avg, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType, explode, collect_list, create_map
+from pyspark.ml.feature import QuantileDiscretizer
 from functools import reduce
 from local_configuration import *
 import csv
@@ -630,9 +631,29 @@ def get_icd9_feats(sparkSQLContext):
     return hadmid_to_icd9_feats
 
 
-def get_static_features(sparkSQLContext):
+def get_static_features(spark):
     #TODO merge icd9 feats with other static feats, demographics ...??
-    return get_icd9_feats(sparkSQLContext)
+    
+    df_admissions = spark.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv'), header=True, inferSchema="false")
+    df_patients = spark.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'PATIENTS.csv'), header=True, inferSchema="false")
+
+    df_merge = df_admissions.join(df_patients, ['SUBJECT_ID'])
+
+    timeFmt = "yyyy-MM-dd' 'HH:mm:ss"   #2153-09-03 07:15:00
+    timeDiff = F.round((F.unix_timestamp('ADMITTIME', format=timeFmt)
+                - F.unix_timestamp('DOB', format=timeFmt)) / (60*60*24*365.242 )).cast('integer')
+    df_merge = df_merge.withColumn("AGE_ADMISSION", timeDiff)
+
+    df_merge = QuantileDiscretizer(numBuckets=5, inputCol='AGE_ADMISSION', outputCol='QAGE').fit(df_merge).transform(df_merge)
+
+    t = {0.0:'very-young', 1.0:'young', 2.0:'normal', 3.0:'old', 4.0:'very-old'}
+    udf_age = udf(lambda x: t[x], StringType())
+    df_merge = df_merge.withColumn('AGE', udf_age('QAGE'))
+    df_merge = reduce(DataFrame.drop, ['SUBJECT_ID', 'ROW_ID', 'ADMITTIME', 'DISCHTIME', 'DEATHTIME', 'ADMISSION_TYPE', 'ADMISSION_LOCATION', 'LANGUAGE', 'RELIGION', 'EDREGTIME', 'EDOUTTIME', 'DIAGNOSIS', 'HOSPITAL_EXPIRE_FLAG', 'HAS_CHATEVENTS_DATA', 'GENDER', 'DOB', 'DOD', 'DOD_HOSP', 'DOD_SSN', 'EXPIRE_FLAG', 'AGE_ADMISSION', 'QAGE'], df_merge)
+
+    df_merge = df_merge.fillna({'MARITAL_STATUS': 'UNKNOWN_MARITAL'})
+    
+    return get_icd9_feats(spark)
 
 
 def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_features_rdd):
