@@ -454,6 +454,7 @@ def temp_conversion (df_filtered_chartevents):
 #Filter feature values 
 def values_filter (df_filtered_chartevents):
 
+    #TODO : check for additional conditions
     def value_conditions(itemname, itemid, value):
    
         if (itemname == 'TEMP') and (itemid in [678,223761]) and value > 70 and value < 120:
@@ -560,7 +561,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
 
     df_hadm_hourly_averages_filled_agged.show(10)
     def mapFn(row):
-        print(row)
+        #print(row)
         list_of_single_entry_dicts_for_each_hr = flatten(row.item_hour_toValues)
         dict_hour_to_feature_row = {k: v for d in list_of_single_entry_dicts_for_each_hr for k, v in d.items()}
         sequences = [[None] * len(items)] * num_hours
