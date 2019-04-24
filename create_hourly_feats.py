@@ -671,12 +671,12 @@ def create_and_write_dataset(spark, sequences, label_name):
 
     pickle.dump(labels, open(os.path.join(PATH_OUTPUT, label_name + ".hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)
     pickle.dump(seqs, open(os.path.join(PATH_OUTPUT, label_name + ".hadm.seqs"), 'wb'), pickle.HIGHEST_PROTOCOL)
-    pickle.dump(hadm_ids, open(os.path.join(PATH_OUTPUT, label_name + "hadm.ids"), 'wb'), pickle.HIGHEST_PROTOCOL)
+    pickle.dump(hadm_ids, open(os.path.join(PATH_OUTPUT, label_name + ".hadm.ids"), 'wb'), pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':
 
-    conf = SparkConf().setMaster("local[4]").setAppName("My App")
+    conf = SparkConf().setMaster("local[4]").setAppName("My App") #\
         #.set("spark.driver.memory", "15g") \
         #.set("spark.executor.memory", "3g")
     sc = SparkContext(conf=conf)

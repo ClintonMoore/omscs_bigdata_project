@@ -18,8 +18,9 @@ import numpy as np
 from local_configuration import *
 
 # Set a correct path to the data files that you preprocessed
-PATH_TRAIN_SEQS = os.path.join(PATH_OUTPUT, "hadm.seqs")
-PATH_TRAIN_LABELS = os.path.join(PATH_OUTPUT, "hadm.labels")
+LABEL_PREFIX = "temporal_only"  #temporal_and_static
+PATH_TRAIN_SEQS = os.path.join(PATH_OUTPUT, LABEL_PREFIX + ".hadm.seqs")
+PATH_TRAIN_LABELS = os.path.join(PATH_OUTPUT, LABEL_PREFIX + ".hadm.labels")
 
 NUM_EPOCHS = 60
 BATCH_SIZE = 200
@@ -38,7 +39,7 @@ dataset = VisitSequenceWithLabelDataset(seqs, labels, num_features)
 
 #Split Dataset
 train_size = int(0.8 * len(dataset))
-validation_size = int(0.2 * len(dataset))
+validation_size = int(len(dataset) - train_size)
 test_size = 0 #len(dataset) - (train_size +validation_size )
 train_dataset, valid_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, validation_size, test_size])
 
