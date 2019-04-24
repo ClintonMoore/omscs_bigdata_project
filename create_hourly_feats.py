@@ -530,7 +530,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     df_standardized_chartevents = standardize_features (df_filtered_chartevents)
     hourly_averages = df_standardized_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
 
-    hourly_averages.show(n=15)
+    #hourly_averages.show(n=15)
 
     def consolidateColNumbers(row):
         new_row_dict = {}
@@ -549,7 +549,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     #print(rdd_hadm_individual_metrics.take(15))
 
     df_hadm_hourly_averages_filled  = rdd_hadm_individual_metrics.flatMap(lambda x: [Row(**{'HADM_ID': x.HADM_ID, 'ITEMNAME': x.ITEMNAME, 'HOUR':y, 'VALUE':x.hourly_averages[y]}) for y in range(len(x.hourly_averages))]).toDF()
-    df_hadm_hourly_averages_filled.show(100)
+    #df_hadm_hourly_averages_filled.show(100)
 
     itemnames = list(set(get_event_key_ids().values()))
     all_hours = range(num_hours)
@@ -676,9 +676,9 @@ def create_and_write_dataset(spark, sequences, label_name):
 
 if __name__ == '__main__':
 
-    conf = SparkConf().setMaster("local[7]").setAppName("My App") \
-        .set("spark.driver.memory", "15g") \
-        .set("spark.executor.memory", "3g")
+    conf = SparkConf().setMaster("local[4]").setAppName("My App")
+        #.set("spark.driver.memory", "15g") \
+        #.set("spark.executor.memory", "3g")
     sc = SparkContext(conf=conf)
     spark = SQLContext(sc)
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
@@ -689,7 +689,6 @@ if __name__ == '__main__':
     rdd_hadm_temporal_sequences_only = aggregate_temporal_features_hourly(filtered_chart_events_path)
 
     create_and_write_dataset(spark, rdd_hadm_temporal_sequences_only, "temporal_only")
-    exit()
 
     rdd_static_features = get_static_features(spark)
 
