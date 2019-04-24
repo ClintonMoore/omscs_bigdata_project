@@ -7,8 +7,7 @@ import pandas as pd
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext, DataFrame, Row, Window, functions as F
 from pyspark.sql.types import IntegerType, StringType, DoubleType, StructType, StructField, ArrayType, FloatType
-from pyspark.sql.functions import array, udf, avg, row_number, col, monotonically_increasing_id, pandas_udf, PandasUDFType, explode, collect_list, create_map
-from pyspark.ml.feature import QuantileDiscretizer
+from pyspark.sql.functions import array, udf, avg, row_number, col, concat, lit, monotonically_increasing_id, pandas_udf, PandasUDFType, explode, collect_list, create_map
 from functools import reduce
 from local_configuration import *
 import csv
@@ -363,7 +362,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
             for line in orig_file:
                 temp_file.write(line)
                 i = i + 1
-                if i > 5000:
+                if i > 4000:
                     break
         temp_file.close()
 
@@ -530,7 +529,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     df_standardized_chartevents = standardize_features (df_filtered_chartevents)
     hourly_averages = df_standardized_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
 
-    #hourly_averages.show(n=15)
+    hourly_averages.show(n=15)
 
     def consolidateColNumbers(row):
         new_row_dict = {}
@@ -549,53 +548,36 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     #print(rdd_hadm_individual_metrics.take(15))
 
     df_hadm_hourly_averages_filled  = rdd_hadm_individual_metrics.flatMap(lambda x: [Row(**{'HADM_ID': x.HADM_ID, 'ITEMNAME': x.ITEMNAME, 'HOUR':y, 'VALUE':x.hourly_averages[y]}) for y in range(len(x.hourly_averages))]).toDF()
-    #df_hadm_hourly_averages_filled.show(100)
-
-    #for each itemname (temporal feature), get filtered dataframe with only that feature.   Outer join their values under a new column with that ITEMNAME onto a new aggregate dataframe
-    df_distinct_hadmids = df_hadm_hourly_averages_filled.select('HADM_ID').distinct()
-    hours_df = spark.createDataFrame(range(num_hours), IntegerType()).withColumnRenamed('value', 'HOUR')
-    cartesian_hadm_hours = df_distinct_hadmids.crossJoin(hours_df)
-    #cartesian_hadm_hours.show(150)
+    df_hadm_hourly_averages_filled.show(100)
 
     itemnames = list(set(get_event_key_ids().values()))
+    all_hours = range(num_hours)
 
-    for itemname in itemnames:
-        df_single_feature = df_hadm_hourly_averages_filled.filter(col('ITEMNAME') == itemname)
-        df_single_feature = df_single_feature.drop(df_single_feature.ITEMNAME).withColumnRenamed('VALUE', itemname)
-        cartesian_hadm_hours = cartesian_hadm_hours.join(df_single_feature, ['HADM_ID', 'HOUR'], how='left')
-
-    stats = cartesian_hadm_hours.agg(*(
-        avg(c).alias(c) for c in cartesian_hadm_hours.columns if c not in ["HADM_ID", "HOUR"]
-    ))
-
-    stats = stats.na.fill(0.0)
-    
-    #cartesian_hadm_hours.show(150)
-    df_hadm_hourly_feature_arrays = cartesian_hadm_hours.na.fill(stats.first().asDict()).select('HADM_ID', 'HOUR', F.struct(itemnames).alias('all_temporal_feats'))
-    #df_hadm_hourly_feature_arrays.show(150)
+    df_hadm_hourly_averages_filled_agged = df_hadm_hourly_averages_filled.groupBy("HADM_ID").agg(collect_list(create_map(concat(col('ITEMNAME'), lit('_'), col("HOUR")),col('VALUE'))).alias('item_hour_toValues'))
 
 
-    df_hadm_all_hour_feats = df_hadm_hourly_feature_arrays.groupBy("HADM_ID").agg(collect_list(create_map(col("HOUR"),col('all_temporal_feats'))).alias('all_hours_all_temporal_feats'))
-    #df_hadm_all_hour_feats.show(150)
-
-    def transformMapToArrayFn(row):
-        new_row_dict = {}
-        new_row_dict['HADM_ID'] = row.HADM_ID
-        list_of_single_entry_dicts_for_each_hr = flatten(row.all_hours_all_temporal_feats)
+    def mapFn(row):
+        #print(row)
+        list_of_single_entry_dicts_for_each_hr = flatten(row.item_hour_toValues)
         dict_hour_to_feature_row = {k: v for d in list_of_single_entry_dicts_for_each_hr for k, v in d.items()}
-        sequences = [None] * num_hours
-        for h in range(num_hours):
-            if h in dict_hour_to_feature_row:
-                features_array_order_of_itemnames = []
-                features_dict_for_hour = dict_hour_to_feature_row[h]
-                for itemname in itemnames:
-                    features_array_order_of_itemnames.append(features_dict_for_hour[itemname])
-                    sequences[h] = features_array_order_of_itemnames
-        #return Row(**{'HADM_ID':row.HADM_ID, 'all_hours_all_temporal_feats' : sequences})
+        sequences = [[None] * len(itemnames)] * num_hours
+        for i in range(len(itemnames)):
+            itemname = itemnames[i]
+
+            value = 0.0  # TODO change to average value for item
+
+            for hour in all_hours:
+                if itemname + "_0" in dict_hour_to_feature_row:
+                    key = itemname + "_" + str(hour)
+                    value = dict_hour_to_feature_row[key]
+
+                sequences[hour][i] = value
+
         return (row.HADM_ID, sequences)
 
-    rdd_hadm_individual_metrics_hadm_to_sequences = df_hadm_all_hour_feats.rdd.map(transformMapToArrayFn)
-    #print(rdd_hadm_individual_metrics_hadm_to_sequences.take(10))
+    rdd_hadm_individual_metrics_hadm_to_sequences = df_hadm_hourly_averages_filled_agged.rdd.map(mapFn)
+
+
 
     return rdd_hadm_individual_metrics_hadm_to_sequences
 
@@ -631,29 +613,9 @@ def get_icd9_feats(sparkSQLContext):
     return hadmid_to_icd9_feats
 
 
-def get_static_features(spark):
+def get_static_features(sparkSQLContext):
     #TODO merge icd9 feats with other static feats, demographics ...??
-    
-    df_admissions = spark.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv'), header=True, inferSchema="false")
-    df_patients = spark.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'PATIENTS.csv'), header=True, inferSchema="false")
-
-    df_merge = df_admissions.join(df_patients, ['SUBJECT_ID'])
-
-    timeFmt = "yyyy-MM-dd' 'HH:mm:ss"   #2153-09-03 07:15:00
-    timeDiff = F.round((F.unix_timestamp('ADMITTIME', format=timeFmt)
-                - F.unix_timestamp('DOB', format=timeFmt)) / (60*60*24*365.242 )).cast('integer')
-    df_merge = df_merge.withColumn("AGE_ADMISSION", timeDiff)
-
-    df_merge = QuantileDiscretizer(numBuckets=5, inputCol='AGE_ADMISSION', outputCol='QAGE').fit(df_merge).transform(df_merge)
-
-    t = {0.0:'very-young', 1.0:'young', 2.0:'normal', 3.0:'old', 4.0:'very-old'}
-    udf_age = udf(lambda x: t[x], StringType())
-    df_merge = df_merge.withColumn('AGE', udf_age('QAGE'))
-    df_merge = reduce(DataFrame.drop, ['SUBJECT_ID', 'ROW_ID', 'ADMITTIME', 'DISCHTIME', 'DEATHTIME', 'ADMISSION_TYPE', 'ADMISSION_LOCATION', 'LANGUAGE', 'RELIGION', 'EDREGTIME', 'EDOUTTIME', 'DIAGNOSIS', 'HOSPITAL_EXPIRE_FLAG', 'HAS_CHATEVENTS_DATA', 'GENDER', 'DOB', 'DOD', 'DOD_HOSP', 'DOD_SSN', 'EXPIRE_FLAG', 'AGE_ADMISSION', 'QAGE'], df_merge)
-
-    df_merge = df_merge.fillna({'MARITAL_STATUS': 'UNKNOWN_MARITAL'})
-    
-    return get_icd9_feats(spark)
+    return get_icd9_feats(sparkSQLContext)
 
 
 def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_features_rdd):
@@ -673,34 +635,37 @@ def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_f
     return hadm_sequences_of_temporal_and_static_feats_rdd
 
 
+def create_and_write_dataset(spark, sequences, label_name):
+    schema = StructType([StructField("HADMID", StringType(), True), StructField("SEQUENCES", ArrayType(ArrayType(FloatType()), containsNull=True), True)])
+    hadm_sequences = spark.createDataFrame(sequences, schema=schema)
+
+
+    hadm_ids, labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
+
+    pickle.dump(labels, open(os.path.join(PATH_OUTPUT, label_name + ".hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)
+    pickle.dump(seqs, open(os.path.join(PATH_OUTPUT, label_name + ".hadm.seqs"), 'wb'), pickle.HIGHEST_PROTOCOL)
+    pickle.dump(hadm_ids, open(os.path.join(PATH_OUTPUT, label_name + "hadm.ids"), 'wb'), pickle.HIGHEST_PROTOCOL)
+
 
 if __name__ == '__main__':
 
-    conf = SparkConf().setMaster("local[4]").setAppName("My App")#\
-        #.set("spark.driver.memory", "20g") \
-        #.set("spark.executor.memory", "3g")
+    conf = SparkConf().setMaster("local[7]").setAppName("My App") \
+        .set("spark.driver.memory", "15g") \
+        .set("spark.executor.memory", "3g")
     sc = SparkContext(conf=conf)
     spark = SQLContext(sc)
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
 
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
-    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
+    #filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
 
-    rdd_hadm_individual_metrics_hadm_to_sequences = aggregate_temporal_features_hourly(filtered_chart_events_path)
+    rdd_hadm_temporal_sequences_only = aggregate_temporal_features_hourly(filtered_chart_events_path)
+
+    create_and_write_dataset(spark, rdd_hadm_temporal_sequences_only, "temporal_only")
+    exit()
 
     rdd_static_features = get_static_features(spark)
 
-    rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_individual_metrics_hadm_to_sequences, rdd_static_features)
+    rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_temporal_sequences_only, rdd_static_features)
 
-    schema = StructType([StructField("HADMID", StringType(), True), StructField("SEQUENCES", ArrayType(ArrayType(FloatType()), containsNull=True), True)])
-    hadm_sequences = spark.createDataFrame(rdd_hadmid_to_sequences_temporal_and_static_feats, schema=schema)
-
-
-    hadm_ids, labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
-
-    pickle.dump(labels, open(os.path.join(PATH_OUTPUT, "hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)	
-    pickle.dump(seqs, open(os.path.join(PATH_OUTPUT, "hadm.seqs"), 'wb'), pickle.HIGHEST_PROTOCOL)
-    pickle.dump(hadm_ids, open(os.path.join(PATH_OUTPUT, "hadm.ids"), 'wb'), pickle.HIGHEST_PROTOCOL)
-
-
-    #low priority- remove patient admissions that don't have enough data points during 1st 48 hours of admission  - determine "enough" may need to look at other code
+    create_and_write_dataset(spark, rdd_hadmid_to_sequences_temporal_and_static_feats,"temporal_and_static")
