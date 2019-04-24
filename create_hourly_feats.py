@@ -584,7 +584,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
 
 
 
-def get_icd9_feats(sparkSQLContext):
+def get_icd9_features(sparkSQLContext):
 
     top25_icd9_codes = ['4019', '4280', '42731', '41401', '5849', '25000', '2724', '51881', '5990', '53081', '2720', '2859', '486', '2449', '2851', '2762', '496', '99592', '5070', '389', '5859', '40390', '311', '2875', '3051'] #from supp doc here: https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/jamiaopen/1/1/10.1093_jamiaopen_ooy011/9/ooy011_supplemental_materials.docx?Expires=1555865667&Signature=qKYo3JhhWHA6AxWaf007UiK9Yp8thafIVKYoO6lVETi3nW4h7KzoD4XumvO8tU7aBTl6PM0zIOTvzfPFvJqqVkCzpj-KvwwfKH5lz5lpkPlzFkEhl7hd-VDGW-DxC1TiYAnGFom1u2U6pndj9JcBJLMWTwQ4wSxPEg3ZoO3Wpa9HLz71xyy1Q1sjCfx99onRsmMmF2Rz2dcol6tU-YyqQoGxJ5QWpuqYaYH0BuEYhfRXedXhUxAV0TsR3mjb9xeMjXs6OlJoZY3pO6gcSRj98Nb8u5N9SrbsuRTeEtW31gwE1ENZWvqOTguL6fpicWu9zrmeFczCpt5lUF3br7qf5A__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
     idxs_top_25_codes = range(len(top25_icd9_codes))
