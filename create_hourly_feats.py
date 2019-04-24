@@ -637,12 +637,29 @@ def get_static_features(spark):
     df_merge = df_merge.withColumn('AGE', udf_age('QAGE'))
     df_merge = reduce(DataFrame.drop, ['SUBJECT_ID', 'ROW_ID', 'ADMITTIME', 'DISCHTIME', 'DEATHTIME', 'ADMISSION_TYPE',
                                        'ADMISSION_LOCATION', 'LANGUAGE', 'RELIGION', 'EDREGTIME', 'EDOUTTIME',
-                                       'DIAGNOSIS', 'HOSPITAL_EXPIRE_FLAG', 'HAS_CHATEVENTS_DATA', 'GENDER', 'DOB',
+                                       'DIAGNOSIS', 'HOSPITAL_EXPIRE_FLAG', 'HAS_CHARTEVENTS_DATA', 'GENDER', 'DOB',
                                        'DOD', 'DOD_HOSP', 'DOD_SSN', 'EXPIRE_FLAG', 'AGE_ADMISSION', 'QAGE'], df_merge)
 
     df_merge = df_merge.fillna({'MARITAL_STATUS': 'UNKNOWN_MARITAL'})
+    
+    categories = list(set(flatten([list(df_merge.select(c).distinct().collect()) for c in df_merge.columns if c not in ['HADM_ID'] ]) ))
 
-    return get_icd9_feats(spark)
+    categories_dict = {}
+    for i in range(len(categories)):
+      categories_dict[categories[i]] = i
+
+    def mapFnLabels(row):
+      one = categories_dict[row.AGE]
+      two = categories_dict[row.ETHNICITY]
+      three = categories_dict[row.DISCHARGE_LOCATION]
+      four = categories_dict[row.MARITAL_STATUS]
+      five = categories_dict[row.INSURANCE]
+      feat_array = [one, two, three, four, five]
+      return (row.HADM_ID, feat_array)
+
+    hadmid_to_static_feats = df_merge.rdd.map(mapFnLabels)
+
+    return hadmid_to_static_feats
 
 
 def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_features_rdd):
@@ -689,9 +706,13 @@ if __name__ == '__main__':
     rdd_hadm_temporal_sequences_only = aggregate_temporal_features_hourly(filtered_chart_events_path)
 
     create_and_write_dataset(spark, rdd_hadm_temporal_sequences_only, "temporal_only")
+    
+    rdd_icd9_features = get_icd9_features(spark)
 
-    rdd_static_features = get_static_features(spark)
+    rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_temporal_sequences_only, rdd_icd9_features)
 
-    rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_temporal_sequences_only, rdd_static_features)
+    #rdd_static_features = get_static_features(spark)
+
+    #rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadmid_to_sequences_temporal_and_static_feats, rdd_static_features)
 
     create_and_write_dataset(spark, rdd_hadmid_to_sequences_temporal_and_static_feats,"temporal_and_static")
