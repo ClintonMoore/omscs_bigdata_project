@@ -644,7 +644,7 @@ def get_static_features(spark):
 
     categories_dict = {}
     for i in range(len(categories)):
-      categories_dict[categories[i]] = i
+      categories_dict[categories[i]] = float(i)
 
     def mapFnLabels(row):
       one = categories_dict[row.AGE]
