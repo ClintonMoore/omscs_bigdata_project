@@ -412,7 +412,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 def create_dataset(spark, admissions_csv_path, hadm_sequences):
     hadm_sequences= hadm_sequences.withColumnRenamed('HADMID', 'HADM_ID')
     mortality = spark.read.csv(admissions_csv_path , header=True, inferSchema="false").select('SUBJECT_ID', 'HADM_ID', 'HOSPITAL_EXPIRE_FLAG')
-    df = hadm_sequences.join(mortality, on='HADM_ID', how='left')
+    df = hadm_sequences.join(mortality, on='HADM_ID', how='left').na.drop()
     labels =  df.select ('HOSPITAL_EXPIRE_FLAG').rdd.flatMap(lambda x: x).collect()
     seqs = df.rdd.map(lambda x:  x[1]).collect()  
     hadm_ids = df.rdd.map(lambda x:  x[0]).collect() 
