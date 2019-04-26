@@ -392,7 +392,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     filtered_chartevents = filtered_chartevents.withColumn("HOUR_OF_OBS_AFTER_HADM", timeDiff)  #  F.round(   ).cast('integer')
 
     #filter out all observations where X > 48  (occurred after initial 48 hours of admission)
-    filtered_chartevents = filtered_chartevents.filter(col('HOUR_OF_OBS_AFTER_HADM') <= 48 and col('HOUR_OF_OBS_AFTER_HADM') >=0)
+    filtered_chartevents = filtered_chartevents.filter((col('HOUR_OF_OBS_AFTER_HADM') <= 48) & (col('HOUR_OF_OBS_AFTER_HADM') >=0))
     
     filtered_chartevents = df_los.join(filtered_chartevents, ['HADM_ID'])
 
@@ -415,7 +415,7 @@ def create_dataset(spark, admissions_csv_path, hadm_sequences):
     df = hadm_sequences.join(mortality, on='HADM_ID', how='left').na.drop()
     labels =  df.select ('HOSPITAL_EXPIRE_FLAG').rdd.flatMap(lambda x: x).collect()
     seqs = df.rdd.map(lambda x:  x[1]).collect()  
-    hadm_ids = df.rdd.map(lambda x:  x[0]).collect() 
+    hadm_ids = df.rdd.map(lambda x:  x[0]).collect()
     return hadm_ids, labels, seqs
 
 
@@ -691,20 +691,20 @@ def create_and_write_dataset(spark, sequences, label_name):
 
 if __name__ == '__main__':
 
-    conf = SparkConf().setMaster("local[7]").setAppName("My App") \
-        .set("spark.driver.memory", "15g") \
-        .set("spark.executor.memory", "2g")
+    conf = SparkConf().setMaster("local[2]").setAppName("My App") \
+        #.set("spark.driver.memory", "15g") \
+        #.set("spark.executor.memory", "2g")
     sc = SparkContext(conf=conf)
     spark = SQLContext(sc)
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')
 
     admissions_csv_path = os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv')
-    #filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
+    filter_chart_events(spark, os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'CHARTEVENTS.csv'), admissions_csv_path, filtered_chart_events_path)
 
     rdd_hadm_temporal_sequences_only = aggregate_temporal_features_hourly(filtered_chart_events_path)
 
     create_and_write_dataset(spark, rdd_hadm_temporal_sequences_only, "temporal_only")
-    
+    #exit()
     rdd_icd9_features = get_icd9_features(spark)
 
     rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_temporal_sequences_only, rdd_icd9_features)
