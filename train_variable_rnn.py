@@ -22,8 +22,8 @@ LABEL_PREFIX = "temporal_only"  #temporal_and_static
 PATH_TRAIN_SEQS = os.path.join(PATH_OUTPUT, LABEL_PREFIX + ".hadm.seqs")
 PATH_TRAIN_LABELS = os.path.join(PATH_OUTPUT, LABEL_PREFIX + ".hadm.labels")
 
-NUM_EPOCHS = 60
-BATCH_SIZE = 200
+NUM_EPOCHS = 150
+BATCH_SIZE = 100
 USE_CUDA = False  # Set 'True' if you want to use GPU
 NUM_WORKERS = 0
 
@@ -74,11 +74,15 @@ for epoch in range(NUM_EPOCHS):
 
 	train_actual = train_results[:, :1]
 	train_pred = train_results[:, 1:]
+	#print("TrainActl: ", train_actual)
+	#print("TrainPred: ", train_pred)
 	train_roc = get_roc_auc(train_actual,  train_pred)
 	print("Train Roc_auc: " + str(train_roc))
 
 	valid_actual = valid_results[:, :1]
 	valid_pred = valid_results[:, 1:]
+	#print("ValidActl: ", valid_actual)
+	#print("ValidPred: ", valid_pred)
 	valid_roc = get_roc_auc(valid_actual,  valid_pred)
 	print("Valid Roc_auc: " + str(valid_roc))
 

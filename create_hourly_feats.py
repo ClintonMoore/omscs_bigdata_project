@@ -351,7 +351,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
 
     #use subset of large CHARTEVENTS.csv file for faster development
     chrtevents_file_path_to_use = orig_chrtevents_file_path
-    use_sample_subset_lines = True
+    use_sample_subset_lines = False
     if use_sample_subset_lines:
 
         chartevents_sample_temp_file = "CHARTEVENTS_SAMPLE.csv"
@@ -363,7 +363,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
             for line in orig_file:
                 temp_file.write(line)
                 i = i + 1
-                if i > 4000:
+                if i > 500000:
                     break
         temp_file.close()
 
@@ -521,10 +521,17 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     df_filtered_chartevents = spark.read.csv(filtered_chartevents_path, header=True, inferSchema=False)
     df_filtered_chartevents = df_filtered_chartevents.na.drop(subset=["VALUENUM"]).withColumn("VALUENUM", df_filtered_chartevents["VALUENUM"].cast(DoubleType()))
     df_filtered_chartevents = values_filter (df_filtered_chartevents)
-    df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
-    df_filtered_chartevents = df_filtered_chartevents.drop(df_filtered_chartevents.VALUENUM).withColumnRenamed('VALUENUM_INT', 'VALUENUM')
+    #df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
+    #df_filtered_chartevents = df_filtered_chartevents.drop(df_filtered_chartevents.VALUENUM).withColumnRenamed('VALUENUM_INT', 'VALUENUM')
+    df_standardized_chartevents = df_filtered_chartevents  #TODO: add back standardize features standardize_features (df_filtered_chartevents)
+
+
+    #test only
     df_standardized_chartevents = standardize_features (df_filtered_chartevents)
+
+
     hourly_averages = df_standardized_chartevents.groupBy("HADM_ID", "ITEMNAME").pivot('HOUR_OF_OBS_AFTER_HADM', range(0,48)).avg("VALUENUM")
+
 
     #hourly_averages.show(n=15)
 
@@ -566,13 +573,23 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
             itemname = itemnames[i]
 
             value = item_avgs.get(itemname)
+            if value is None:
+                raise Exception("Averages should never have a None value!!  There is a bug!")
 
             for hour in all_hours:
                 if itemname + "_0" in dict_hour_to_feature_row:
                     key = itemname + "_" + str(hour)
-                    value = dict_hour_to_feature_row[key]
+                    if key in dict_hour_to_feature_row:
+                        found_value = dict_hour_to_feature_row[key]
+                        if found_value is not None:
+                            value = found_value
+                    else:
+                        raise Exception("There should be entries for ALL hours for an item in the dict if there is an entry for ANY hour of that item b/c of ffil/ bfill")
 
                 sequences[hour][i] = value
+
+                if sequences[hour][i] is None:
+                    raise Exception("None of these should be set as a None!")
 
         return (row.HADM_ID, sequences)
 
@@ -682,6 +699,19 @@ def create_and_write_dataset(spark, sequences, label_name):
     hadm_sequences = spark.createDataFrame(sequences, schema=schema)
 
 
+
+
+    #TODO: AFTER BUGS HAVE BEEN RESOLVED.  THIS BLOCK CAN BE REMOVED.
+    def array_to_string(my_list):
+        return '[' + ','.join([str(elem) for elem in my_list]) + ']'
+    array_to_string_udf = udf(array_to_string, StringType())
+    hadm_sequences_mod= hadm_sequences.withColumn('SEQUENCES_STR', array_to_string_udf(hadm_sequences["SEQUENCES"]))
+    hadm_sequences_mod = hadm_sequences_mod.drop("SEQUENCES")
+    output_ = os.path.join(PATH_OUTPUT, 'hadm_sequences')  #must be absolute path
+    hadm_sequences_mod.toPandas().to_csv(os.path.join(PATH_OUTPUT, 'hadm_sequences'))
+
+
+
     hadm_ids, labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
 
     pickle.dump(labels, open(os.path.join(PATH_OUTPUT, label_name + ".hadm.labels"), 'wb'), pickle.HIGHEST_PROTOCOL)
@@ -691,7 +721,7 @@ def create_and_write_dataset(spark, sequences, label_name):
 
 if __name__ == '__main__':
 
-    conf = SparkConf().setMaster("local[2]").setAppName("My App") \
+    conf = SparkConf().setMaster("local[7]").setAppName("My App") #\
         #.set("spark.driver.memory", "15g") \
         #.set("spark.executor.memory", "2g")
     sc = SparkContext(conf=conf)
@@ -704,7 +734,7 @@ if __name__ == '__main__':
     rdd_hadm_temporal_sequences_only = aggregate_temporal_features_hourly(filtered_chart_events_path)
 
     create_and_write_dataset(spark, rdd_hadm_temporal_sequences_only, "temporal_only")
-    #exit()
+
     rdd_icd9_features = get_icd9_features(spark)
 
     rdd_hadmid_to_sequences_temporal_and_static_feats = merge_temporal_sequences_and_static_features(rdd_hadm_temporal_sequences_only, rdd_icd9_features)
