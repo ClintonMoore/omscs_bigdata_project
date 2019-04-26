@@ -392,7 +392,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     filtered_chartevents = filtered_chartevents.withColumn("HOUR_OF_OBS_AFTER_HADM", timeDiff)  #  F.round(   ).cast('integer')
 
     #filter out all observations where X > 48  (occurred after initial 48 hours of admission)
-    filtered_chartevents = filtered_chartevents.filter(col('HOUR_OF_OBS_AFTER_HADM') <= 48)
+    filtered_chartevents = filtered_chartevents.filter(col('HOUR_OF_OBS_AFTER_HADM') <= 48 and col('HOUR_OF_OBS_AFTER_HADM') >=0)
     
     filtered_chartevents = df_los.join(filtered_chartevents, ['HADM_ID'])
 
