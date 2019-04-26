@@ -420,7 +420,7 @@ def create_dataset(spark, admissions_csv_path, hadm_sequences):
 
 
 
-#Standardize features in a new column Standardized_Value  (we can change the value in place VALUENUM)
+#Standardize features values in place VALUENUM using Quantiles
 def standardize_features (df_filtered_chartevents): 
     temp = df_filtered_chartevents.select('ITEMNAME','VALUENUM')
     min_quantile = temp.groupBy('ITEMNAME').agg( F.expr('percentile_approx(VALUENUM, 0.05)').alias("Quantile5"), F.expr('percentile_approx(VALUENUM, 0.95)').alias("Quantile95"))
@@ -431,6 +431,16 @@ def standardize_features (df_filtered_chartevents):
     standardized_df = cartesian_min_quantile.withColumn("VALUENUM", udf_standardize(array("VALUENUM", "Quantile5", "Quantile95")))
     
     return standardized_df.drop("Quantile5","Quantile95")
+
+#Standardize features values in place VALUENUM using Max
+def standardize_features_max (df_filtered_chartevents): 
+    temp = df_filtered_chartevents.select('ITEMNAME','VALUENUM')
+    max_df = temp.groupBy('ITEMNAME').agg( F.max(temp.VALUENUM).alias("Max"))
+    cartesian_max = max_df.join(df_filtered_chartevents, on='ITEMNAME', how='left')
+    udf_standardize = F.udf( lambda x: (x[0] /x[1]) if x[1]!=0.0 else  0.0 , DoubleType()) 
+    standardized_df = cartesian_max.withColumn("VALUENUM", udf_standardize(array("VALUENUM", "Max")))
+    
+    return standardized_df.drop("Max")
 
 
 #Convert all temperature values in dataframe to Celsius
@@ -523,7 +533,7 @@ def aggregate_temporal_features_hourly(filtered_chartevents_path):
     df_filtered_chartevents = values_filter (df_filtered_chartevents)
     #df_filtered_chartevents = df_filtered_chartevents.withColumn("VALUENUM_INT", df_filtered_chartevents["VALUENUM"].cast(IntegerType()))
     #df_filtered_chartevents = df_filtered_chartevents.drop(df_filtered_chartevents.VALUENUM).withColumnRenamed('VALUENUM_INT', 'VALUENUM')
-    df_standardized_chartevents = df_filtered_chartevents  #TODO: add back standardize features standardize_features (df_filtered_chartevents)
+    df_standardized_chartevents = standardize_features_max (df_filtered_chartevents)
 
 
     #test only
