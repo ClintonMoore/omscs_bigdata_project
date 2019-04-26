@@ -506,9 +506,21 @@ def values_filter (df_filtered_chartevents):
             return None
         elif (itemname == 'SBP') and value <=0 and value >= 400:
             return None
+        elif (itemname == 'SBP_Line') and value <=0:
+            return None
+        elif (itemname == 'SBP_Limb') and value <=0:
+            return None
         elif (itemname == 'DBP') and value <=0 and value >= 300:
             return None
+        elif (itemname == 'DBP_Line') and value <=0:
+            return None
+        elif (itemname == 'DBP_Limb') and value <=0:
+            return None
         elif (itemname == 'MBP') and value <=0 and value >= 300:
+            return None
+        elif (itemname == 'MBP_Line') and value <=0:
+            return None
+        elif (itemname == 'MBP_Limb') and value <=0:
             return None
         elif (itemname == 'RR') and value >= 70:
             return None
