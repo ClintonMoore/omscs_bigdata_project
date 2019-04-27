@@ -38,9 +38,9 @@ print(num_features)
 dataset = VisitSequenceWithLabelDataset(seqs, labels, num_features)
 
 #Split Dataset
-train_size = int(0.8 * len(dataset))
-validation_size = int(len(dataset) - train_size)
-test_size = 0 #nt(len(dataset) - (2*validation_size))#0 #len(dataset) - (train_size +validation_size )
+train_size = int(0.2 * len(dataset))
+validation_size = train_size #int(len(dataset) - train_size)
+test_size = int(len(dataset) - (2*validation_size))#0 #len(dataset) - (train_size +validation_size )
 train_dataset, valid_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, validation_size, test_size])
 
 train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=visit_collate_fn, num_workers=NUM_WORKERS)

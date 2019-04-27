@@ -46,6 +46,11 @@ def train(model, device, data_loader, criterion, optimizer, epoch, print_freq=10
 
 	end = time.time()
 	for i, (input, target) in enumerate(data_loader):
+		#torch.set_printoptions(profile="full")
+		#print(i, (input, target))
+		#torch.set_printoptions(profile="default")
+
+
 		# measure data loading time
 		data_time.update(time.time() - end)
 
