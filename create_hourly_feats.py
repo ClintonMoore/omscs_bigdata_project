@@ -653,9 +653,9 @@ def get_icd9_features(sparkSQLContext):
 
 def get_static_features(spark): 
     df_admissions = spark.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv'), header=True,
-                                   inferSchema="false")
+                                   inferSchema="false").drop("EXPIRE_FLAG").drop("DISCHARGE_LOCATION")
     df_patients = spark.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'PATIENTS.csv'), header=True,
-                                 inferSchema="false")
+                                 inferSchema="false").select(['SUBJECT_ID','DOB','GENDER'])
 
     df_merge = df_admissions.join(df_patients, ['SUBJECT_ID'])
 
@@ -686,10 +686,9 @@ def get_static_features(spark):
     def mapFnLabels(row):
       one = categories_dict[row.AGE]
       two = categories_dict[row.ETHNICITY]
-      three = categories_dict[row.DISCHARGE_LOCATION]
-      four = categories_dict[row.MARITAL_STATUS]
-      five = categories_dict[row.INSURANCE]
-      feat_array = [one, two, three, four, five]
+      three = categories_dict[row.MARITAL_STATUS]
+      four = categories_dict[row.INSURANCE]
+      feat_array = [one, two, three, four]
       return (row.HADM_ID, feat_array)
 
     hadmid_to_static_feats = df_merge.rdd.map(mapFnLabels)
