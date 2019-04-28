@@ -10,7 +10,7 @@ Instructions for running the experiment.
 
 3. Run the python file "create_hourly_feats.py" to start pre-processing the data.
 
-4. The first part should generate the FILTERED_CHARTEVENTS.csv file. Move this over to HDFS by running "hdfs dfs -put FILTERED_CHARTEVENTS.csv data/processed".
+4. The first part should generate the FILTERED_CHARTEVENTS.csv file. This file can be obtained by using a sample or the whole data depending the boolean variable "use_sample_subset_lines" in "filter_chart_events" function. Move the files over to HDFS by running "hdfs dfs -put FILTERED_CHARTEVENTS.csv data/processed".
 
 5. Run the python file "create_hourly_feats.py" again. This will create sequences and labels.
 
