@@ -1,1 +1,19 @@
 # omscs_bigdata_project
+
+Instructions for running the experiment.
+
+1. Gather the correct Spark and PySpark version. We used the Spark and Pyspark versions 2.4.1 to pair with Hadoop version 2.7 to run this experiment. Make sure these services are running.
+
+1. Gather all the required CSV files. This includes ADMISSIONS.csv, CHARTEVENTS.csv, DIAGNOSES_ICD.csv, ICUSTAYS.csv, and PATIENTS.csv files.
+
+2. Create the necessary folders in HDFS for the CSV files. For instance if you have your variable "PATH_MIMIC_ORIGINAL_CSV_FILES" set to "data/mimic3" in the python file "local_configuration.py", then you would need to run this command to move over the CSV file into HDFS "hdfs dfs -put ADMISSIONS.csv CHARTEVENTS.csv DIAGNOSES_ICD.csv ICUSTAYS.csv PATIENTS.csv data/mimic3".
+
+3. Run the python file "create_hourly_feats.py" to start pre-processing the data.
+
+4. The first part should generate the FILTERED_CHARTEVENTS.csv file. Move this over to HDFS by running "hdfs dfs -put FILTERED_CHARTEVENTS.csv data/processed".
+
+5. Run the python file "create_hourly_feats.py" again. This will create sequences and labels.
+
+6. In the python file "train_variable_rnn.py", you can alter the file to use only the temporal sequences or use the temporal plus static sequences. Run the python file "train_variable_rnn.py".
+
+7. This will give you all the graphed results of data, such as on accuracy and AUC.
