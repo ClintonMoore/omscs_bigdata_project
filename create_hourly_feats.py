@@ -641,7 +641,7 @@ def get_icd9_features(sparkSQLContext):
         icd9_set = set([])
         for single_entry_dict in list_of_single_entry_dicts_admittime_to_icd9:
              for timestampstr in single_entry_dict.keys():
-                  if timestampstr <= this_hadm_admittime:              #'<' means all icd9's from prior admissions; '<=' means prior and current admission (which may include foward looking diagnoses from later in this admission - allowing data leakage)
+                  if timestampstr < this_hadm_admittime:              #'<' means all icd9's from prior admissions; '<=' means prior and current admission (which may include foward looking diagnoses from later in this admission - allowing data leakage)
                        icd9_set.add(single_entry_dict[timestampstr])
         feat_array = [1.0 if x in icd9_set else 0.0 for x in top25_icd9_codes]
         return (row.HADM_ID, feat_array)
@@ -655,9 +655,9 @@ def get_static_features(spark):
     # TODO merge icd9 feats with other static feats, demographics ...??
 
     df_admissions = spark.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv'), header=True,
-                                   inferSchema="false")
+                                   inferSchema="false").drop("EXPIRE_FLAG").drop("DISCHARGE_LOCATION")
     df_patients = spark.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'PATIENTS.csv'), header=True,
-                                 inferSchema="false")
+                                 inferSchema="false").select(['SUBJECT_ID','DOB','GENDER'])
 
     df_merge = df_admissions.join(df_patients, ['SUBJECT_ID'])
 
@@ -688,10 +688,10 @@ def get_static_features(spark):
     def mapFnLabels(row):
       one = categories_dict[row.AGE]
       two = categories_dict[row.ETHNICITY]
-      three = categories_dict[row.DISCHARGE_LOCATION]
+      #three = categories_dict[row.DISCHARGE_LOCATION]
       four = categories_dict[row.MARITAL_STATUS]
       five = categories_dict[row.INSURANCE]
-      feat_array = [one, two, three, four, five]
+      feat_array = [one, two, four, five]
       return (row.HADM_ID, feat_array)
 
     hadmid_to_static_feats = df_merge.rdd.map(mapFnLabels)
@@ -743,9 +743,9 @@ def create_and_write_dataset(spark, sequences, label_name):
 
 if __name__ == '__main__':
 
-    conf = SparkConf().setMaster("local[7]").setAppName("My App") #\
-        #.set("spark.driver.memory", "15g") \
-        #.set("spark.executor.memory", "2g")
+    conf = SparkConf().setMaster("local[7]").setAppName("My App") \
+        .set("spark.driver.memory", "15g") \
+        .set("spark.executor.memory", "2g")
     sc = SparkContext(conf=conf)
     spark = SQLContext(sc)
     filtered_chart_events_path = os.path.join(PATH_OUTPUT, 'FILTERED_CHARTEVENTS.csv')

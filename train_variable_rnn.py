@@ -101,9 +101,9 @@ for epoch in range(NUM_EPOCHS):
 	is_best = valid_roc > best_val_auc  # let's keep the model that has the best accuracy, but you can also use another metric.
 	if is_best:
 		best_val_auc = valid_roc
-		torch.save(model, os.path.join(PATH_OUTPUT, "MyVariableRNN.pth"))
+		torch.save(model, os.path.join(PATH_OUTPUT, "MyVariableRNN_" + LABEL_PREFIX + ".pth"))
 
-best_model = torch.load(os.path.join(PATH_OUTPUT, "MyVariableRNN.pth"))
+best_model = torch.load(os.path.join(PATH_OUTPUT, "MyVariableRNN_" + LABEL_PREFIX + ".pth"))
 
 plot_learning_curves(train_losses, valid_losses, train_accuracies, valid_accuracies)
 
