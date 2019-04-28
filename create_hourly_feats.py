@@ -668,7 +668,7 @@ def get_static_features(spark):
 
     df_merge = QuantileDiscretizer(numBuckets=5, inputCol='AGE_ADMISSION', outputCol='QAGE').fit(df_merge).transform(
         df_merge)
-
+    df_merge = df_merge.na.drop(subset=["QAGE"])
     t = {0.0: 'very-young', 1.0: 'young', 2.0: 'normal', 3.0: 'old', 4.0: 'very-old'}
     udf_age = udf(lambda x: t[x], StringType())
     df_merge = df_merge.withColumn('AGE', udf_age('QAGE'))
