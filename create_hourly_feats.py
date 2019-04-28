@@ -373,6 +373,7 @@ def filter_chart_events(spark, orig_chrtevents_file_path, admissions_csv_file_pa
     los_path =  os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, "ICUSTAYS.csv")
     df_los = spark.read.csv(los_path, header=True, inferSchema="false")
     
+    #Filter out less than one day lenght of stays
     df_los = df_los.filter(col('LOS') >=1).select(['HADM_ID'])
 
     df_chartevents = spark.read.csv(chrtevents_file_path_to_use, header=True, inferSchema="false")
@@ -458,8 +459,7 @@ def temp_conversion (df_filtered_chartevents):
 
 #Filter feature values 
 def values_filter (df_filtered_chartevents):
-
-    #TODO : check for additional conditions
+    
     def value_conditions(itemname, itemid, value):
    
         if (itemname == 'TEMP') and (itemid in [678,223761]) and value > 70 and value < 120:
@@ -651,9 +651,7 @@ def get_icd9_features(sparkSQLContext):
     return hadmid_to_icd9_feats
 
 
-def get_static_features(spark):
-    # TODO merge icd9 feats with other static feats, demographics ...??
-
+def get_static_features(spark): 
     df_admissions = spark.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'ADMISSIONS.csv'), header=True,
                                    inferSchema="false")
     df_patients = spark.read.csv(os.path.join(PATH_MIMIC_ORIGINAL_CSV_FILES, 'PATIENTS.csv'), header=True,
@@ -719,20 +717,6 @@ def merge_temporal_sequences_and_static_features(temporal_features_rdd, static_f
 def create_and_write_dataset(spark, sequences, label_name):
     schema = StructType([StructField("HADMID", StringType(), True), StructField("SEQUENCES", ArrayType(ArrayType(FloatType()), containsNull=True), True)])
     hadm_sequences = spark.createDataFrame(sequences, schema=schema)
-
-
-
-
-    #TODO: AFTER BUGS HAVE BEEN RESOLVED.  THIS BLOCK CAN BE REMOVED.
-    def array_to_string(my_list):
-        return '[' + ','.join([str(elem) for elem in my_list]) + ']'
-    array_to_string_udf = udf(array_to_string, StringType())
-    hadm_sequences_mod= hadm_sequences.withColumn('SEQUENCES_STR', array_to_string_udf(hadm_sequences["SEQUENCES"]))
-    hadm_sequences_mod = hadm_sequences_mod.drop("SEQUENCES")
-    output_ = os.path.join(PATH_OUTPUT, 'hadm_sequences')  #must be absolute path
-    hadm_sequences_mod.toPandas().to_csv(os.path.join(PATH_OUTPUT, 'hadm_sequences'))
-
-
 
     hadm_ids, labels, seqs = create_dataset(spark, admissions_csv_path, hadm_sequences)
 
